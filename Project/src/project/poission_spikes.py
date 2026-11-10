@@ -19,7 +19,7 @@ def modcog_to_spikes(x, task_dt_ms=20, sim_dt_ms=1.0, max_rate_hz=100.0,
     p = 1.0 - np.exp(-rates * sim_dt_ms / 1000.0) 
     return rng.random(p.shape) < p
 
-def raster_to_events(spikes, trial_len, steps_per, dt_ms=1.0): 
+def raster_to_events(spikes, lengths, steps_per, dt_ms=1.0): 
     events = []
     for b, L in enumerate(lengths):
         seg = spikes[:L * steps_per, b, :]        # drop the padding
@@ -53,17 +53,18 @@ def plot_trial(events, X, lengths, b, steps_per=20, task_dt_ms=20):
     plt.tight_layout()
     plt.show()
 
-if __name__ == "__main__":
-    tasks = list(list_tasks("modcog"))
+
+def poission_spike_generator(tasks):
     X, Y, M, lengths = build_trials("modcog", tasks, n_per_task=100)
     X_t = X.transpose(1, 0, 2)               # (B, T, D) -> (T, B, D) = (34, 8200, 115)
     spikes = modcog_to_spikes(X_t)           # (34*20, 8200, 115) = (680, 8200, 115)
     print(spikes.shape)                      # expect (680, 8200, 115)
-
     events = raster_to_events(spikes, lengths, steps_per=20)
-    
-    plot_trial(events, X, lengths, b=10)
+    return events, Y, M, lengths
 
+if __name__ == "__main__":
+    tasks = list(list_tasks("modcog"))
+    poission_spike_generator(tasks)
  
     
 
