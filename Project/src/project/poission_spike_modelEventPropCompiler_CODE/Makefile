@@ -1,7 +1,8 @@
 OBJECTS := customUpdate.o neuronUpdate.o synapseUpdate.o init.o runner.o 
-CXXFLAGS := -c -fPIC -std=c++11 -MMD -MP 
-LINKFLAGS := -shared 
-
+CUDA_PATH ?=/usr/local/cuda
+NVCC := $(CUDA_PATH)/bin/nvcc
+NVCCFLAGS := -x cu -arch sm_89 -std=c++11 --compiler-options "-fPIC -Wno-return-type-c-linkage" -Xcudafe "--diag_suppress=extern_entity_treated_as_static" 
+LINKFLAGS := --shared -arch sm_89
 
 DEPS := $(OBJECTS:.o=.d)
 
@@ -10,12 +11,15 @@ DEPS := $(OBJECTS:.o=.d)
 all: librunner.so
 
 librunner.so: $(OBJECTS)
-	@$(CXX) $(LINKFLAGS) -o $@ $(OBJECTS)
+	@$(NVCC) $(LINKFLAGS) -o $@ $(OBJECTS)
 
 -include $(DEPS)
 
+%.d: %.cc
+	@$(NVCC) -M $(NVCCFLAGS) $< 1> $@
+
 %.o: %.cc %.d
-	@$(CXX) $(CXXFLAGS) -o $@ $<
+	@$(NVCC) -dc $(NVCCFLAGS) $<
 
 %.d: ;
 

@@ -13,6 +13,7 @@ struct MergedPresynapticUpdateGroup0
     uint32_t* __restrict__ srcSpkCntEvent;
     uint32_t* __restrict__ srcSpkEvent;
     uint32_t numTrgNeurons;
+    uint32_t rowStride;
     
 }
 ;
@@ -29,83 +30,167 @@ struct MergedPresynapticUpdateGroup1
     
 }
 ;
-static MergedPresynapticUpdateGroup0 mergedPresynapticUpdateGroup0[2];
-void pushMergedPresynapticUpdateGroup0ToDevice(unsigned int idx, float* Gradient, float* LambdaI_post, float* LambdaV_post, float* g, float* outPost, float* outPre, uint32_t* srcSpk, uint32_t* srcSpkCnt, uint32_t* srcSpkCntEvent, uint32_t* srcSpkEvent, uint32_t numTrgNeurons) {
-    mergedPresynapticUpdateGroup0[idx].Gradient = Gradient;
-    mergedPresynapticUpdateGroup0[idx].LambdaI_post = LambdaI_post;
-    mergedPresynapticUpdateGroup0[idx].LambdaV_post = LambdaV_post;
-    mergedPresynapticUpdateGroup0[idx].g = g;
-    mergedPresynapticUpdateGroup0[idx].outPost = outPost;
-    mergedPresynapticUpdateGroup0[idx].outPre = outPre;
-    mergedPresynapticUpdateGroup0[idx].srcSpk = srcSpk;
-    mergedPresynapticUpdateGroup0[idx].srcSpkCnt = srcSpkCnt;
-    mergedPresynapticUpdateGroup0[idx].srcSpkCntEvent = srcSpkCntEvent;
-    mergedPresynapticUpdateGroup0[idx].srcSpkEvent = srcSpkEvent;
-    mergedPresynapticUpdateGroup0[idx].numTrgNeurons = numTrgNeurons;
+__device__ __constant__ MergedPresynapticUpdateGroup0 d_mergedPresynapticUpdateGroup0[2];
+void pushMergedPresynapticUpdateGroup0ToDevice(unsigned int idx, float* Gradient, float* LambdaI_post, float* LambdaV_post, float* g, float* outPost, float* outPre, uint32_t* srcSpk, uint32_t* srcSpkCnt, uint32_t* srcSpkCntEvent, uint32_t* srcSpkEvent, uint32_t numTrgNeurons, uint32_t rowStride) {
+    MergedPresynapticUpdateGroup0 group = {Gradient, LambdaI_post, LambdaV_post, g, outPost, outPre, srcSpk, srcSpkCnt, srcSpkCntEvent, srcSpkEvent, numTrgNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup0, &group, sizeof(MergedPresynapticUpdateGroup0), idx * sizeof(MergedPresynapticUpdateGroup0), cudaMemcpyHostToDevice, 0));
 }
-static MergedPresynapticUpdateGroup1 mergedPresynapticUpdateGroup1[1];
+__device__ __constant__ MergedPresynapticUpdateGroup1 d_mergedPresynapticUpdateGroup1[1];
 void pushMergedPresynapticUpdateGroup1ToDevice(unsigned int idx, float* Gradient, float* LambdaI_post, float* g, float* outPost, uint32_t* srcSpk, uint32_t* srcSpkCnt, uint32_t* srcSpkCntEvent, uint32_t* srcSpkEvent) {
-    mergedPresynapticUpdateGroup1[idx].Gradient = Gradient;
-    mergedPresynapticUpdateGroup1[idx].LambdaI_post = LambdaI_post;
-    mergedPresynapticUpdateGroup1[idx].g = g;
-    mergedPresynapticUpdateGroup1[idx].outPost = outPost;
-    mergedPresynapticUpdateGroup1[idx].srcSpk = srcSpk;
-    mergedPresynapticUpdateGroup1[idx].srcSpkCnt = srcSpkCnt;
-    mergedPresynapticUpdateGroup1[idx].srcSpkCntEvent = srcSpkCntEvent;
-    mergedPresynapticUpdateGroup1[idx].srcSpkEvent = srcSpkEvent;
+    MergedPresynapticUpdateGroup1 group = {Gradient, LambdaI_post, g, outPost, srcSpk, srcSpkCnt, srcSpkCntEvent, srcSpkEvent, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup1, &group, sizeof(MergedPresynapticUpdateGroup1), idx * sizeof(MergedPresynapticUpdateGroup1), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID0[] = {0, 256, };
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID1[] = {288, };
+extern "C" __global__ void updatePresynapticKernel(float t)
+ {
+    const unsigned int batch = blockIdx.y;
+    const unsigned int id = 32 * blockIdx.x + threadIdx.x; 
+    __shared__ unsigned int shSpk[32];
+    __shared__ unsigned int shSpkEvent[32];
+    // merged0
+    if(id < 288) {
+        unsigned int lo = 0;
+        unsigned int hi = 2;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedPresynapticUpdateGroupStartID0[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
+            }
+        }
+        struct MergedPresynapticUpdateGroup0 *group = &d_mergedPresynapticUpdateGroup0[lo - 1]; 
+        const unsigned int groupStartID = d_mergedPresynapticUpdateGroupStartID0[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        const unsigned int preBatchOffset = (256u) * batch;
+        const unsigned int postBatchOffset = group->numTrgNeurons * batch;
+        const uint32_t synBatchOffset = (uint32_t)preBatchOffset * group->rowStride;
+        float linSyn = 0;
+         {
+            const unsigned int numSpikes = group->srcSpkCntEvent[batch];
+            const unsigned int numSpikeBlocks = (numSpikes + 32 - 1) / 32;
+            for (unsigned int r = 0; r < numSpikeBlocks; r++) {
+                const unsigned int numSpikesInBlock = (r == numSpikeBlocks - 1) ? ((numSpikes - 1) % 32) + 1 : 32;
+                __syncthreads();
+                if (threadIdx.x < numSpikesInBlock) {
+                    const unsigned int spk = group->srcSpkEvent[preBatchOffset + (r * 32) + threadIdx.x];
+                    shSpkEvent[threadIdx.x] = spk;
+                }
+                __syncthreads();
+                // loop through all incoming spikes
+                for (unsigned int j = 0; j < numSpikesInBlock; j++) {
+                    float lOutPre = 0.000000000e+00f;
+                    // only work on existing neurons
+                    if (lid < group->rowStride) {
+                        const uint32_t synAddress = ((uint32_t)shSpkEvent[j] * group->rowStride) + lid;
+                        group->Gradient[synBatchOffset + synAddress] -= (group->LambdaI_post[postBatchOffset + lid] * (5.000000000e+00f));
+                        lOutPre += (group->g[synAddress] * (group->LambdaV_post[postBatchOffset + lid] - group->LambdaI_post[postBatchOffset + lid]));
+                    }
+                    lOutPre += __shfl_down_sync(0xFFFFFFFF, lOutPre, 16);
+                    lOutPre += __shfl_down_sync(0xFFFFFFFF, lOutPre, 8);
+                    lOutPre += __shfl_down_sync(0xFFFFFFFF, lOutPre, 4);
+                    lOutPre += __shfl_down_sync(0xFFFFFFFF, lOutPre, 2);
+                    lOutPre += __shfl_down_sync(0xFFFFFFFF, lOutPre, 1);
+                    if((threadIdx.x % 32) == 0) {
+                        atomicAdd(&group->outPre[preBatchOffset + shSpkEvent[j]], lOutPre);
+                    }
+                }
+            }
+        }
+         {
+            const unsigned int numSpikes = group->srcSpkCnt[batch];
+            const unsigned int numSpikeBlocks = (numSpikes + 32 - 1) / 32;
+            for (unsigned int r = 0; r < numSpikeBlocks; r++) {
+                const unsigned int numSpikesInBlock = (r == numSpikeBlocks - 1) ? ((numSpikes - 1) % 32) + 1 : 32;
+                __syncthreads();
+                if (threadIdx.x < numSpikesInBlock) {
+                    const unsigned int spk = group->srcSpk[preBatchOffset + (r * 32) + threadIdx.x];
+                    shSpk[threadIdx.x] = spk;
+                }
+                __syncthreads();
+                // loop through all incoming spikes
+                for (unsigned int j = 0; j < numSpikesInBlock; j++) {
+                    // only work on existing neurons
+                    if (lid < group->rowStride) {
+                        const uint32_t synAddress = ((uint32_t)shSpk[j] * group->rowStride) + lid;
+                        linSyn += (group->g[synAddress]);
+                    }
+                }
+            }
+        }
+        
+        // only do this for existing neurons
+        if (lid < group->numTrgNeurons) {
+            group->outPost[postBatchOffset + lid] += linSyn;
+        }
+    }
+    // merged1
+    if(id >= 288 && id < 544) {
+        const unsigned int lid = id - 288;
+        struct MergedPresynapticUpdateGroup1 *group = &d_mergedPresynapticUpdateGroup1[0]; 
+        const unsigned int preBatchOffset = (115u) * batch;
+        const unsigned int postBatchOffset = (256u) * batch;
+        const uint32_t synBatchOffset = (uint32_t)preBatchOffset * (256u);
+        float linSyn = 0;
+         {
+            const unsigned int numSpikes = group->srcSpkCntEvent[batch];
+            const unsigned int numSpikeBlocks = (numSpikes + 32 - 1) / 32;
+            for (unsigned int r = 0; r < numSpikeBlocks; r++) {
+                const unsigned int numSpikesInBlock = (r == numSpikeBlocks - 1) ? ((numSpikes - 1) % 32) + 1 : 32;
+                __syncthreads();
+                if (threadIdx.x < numSpikesInBlock) {
+                    const unsigned int spk = group->srcSpkEvent[preBatchOffset + (r * 32) + threadIdx.x];
+                    shSpkEvent[threadIdx.x] = spk;
+                }
+                __syncthreads();
+                // loop through all incoming spikes
+                for (unsigned int j = 0; j < numSpikesInBlock; j++) {
+                    // only work on existing neurons
+                    if (lid < (256u)) {
+                        const uint32_t synAddress = ((uint32_t)shSpkEvent[j] * (256u)) + lid;
+                        group->Gradient[synBatchOffset + synAddress] -= (group->LambdaI_post[postBatchOffset + lid] * (5.000000000e+00f));
+                    }
+                }
+            }
+        }
+         {
+            const unsigned int numSpikes = group->srcSpkCnt[batch];
+            const unsigned int numSpikeBlocks = (numSpikes + 32 - 1) / 32;
+            for (unsigned int r = 0; r < numSpikeBlocks; r++) {
+                const unsigned int numSpikesInBlock = (r == numSpikeBlocks - 1) ? ((numSpikes - 1) % 32) + 1 : 32;
+                __syncthreads();
+                if (threadIdx.x < numSpikesInBlock) {
+                    const unsigned int spk = group->srcSpk[preBatchOffset + (r * 32) + threadIdx.x];
+                    shSpk[threadIdx.x] = spk;
+                }
+                __syncthreads();
+                // loop through all incoming spikes
+                for (unsigned int j = 0; j < numSpikesInBlock; j++) {
+                    // only work on existing neurons
+                    if (lid < (256u)) {
+                        const uint32_t synAddress = ((uint32_t)shSpk[j] * (256u)) + lid;
+                        linSyn += (group->g[synAddress]);
+                    }
+                }
+            }
+        }
+        
+        // only do this for existing neurons
+        if (lid < (256u)) {
+            group->outPost[postBatchOffset + lid] += linSyn;
+        }
+    }
 }
 void updateSynapses(float t) {
-    const auto synapseDynamicsStart = std::chrono::high_resolution_clock::now();
-    synapseDynamicsTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - synapseDynamicsStart).count();
-    const auto presynapticUpdateStart = std::chrono::high_resolution_clock::now();
      {
-        // merged presynaptic update group 0
-        for(unsigned int g = 0; g < 2; g++) {
-            const auto *group = &mergedPresynapticUpdateGroup0[g]; 
-            
-            // process presynaptic events: Spike type events
-            for (unsigned int i = 0; i < group->srcSpkCntEvent[0]; i++) {
-                const unsigned int idPre = group->srcSpkEvent[i];
-                for (unsigned int ipost = 0; ipost < group->numTrgNeurons; ipost++) {
-                    const uint32_t idSyn = ((uint32_t)idPre * group->numTrgNeurons) + ipost;
-                    group->Gradient[idSyn] -= (group->LambdaI_post[ipost] * (5.000000000e+00f));
-                    group->outPre[idPre] += group->g[idSyn] * (group->LambdaV_post[ipost] - group->LambdaI_post[ipost]);
-                }
-            }
-            // process presynaptic events: True Spikes
-            for (unsigned int i = 0; i < group->srcSpkCnt[0]; i++) {
-                const unsigned int idPre = group->srcSpk[i];
-                for (unsigned int ipost = 0; ipost < group->numTrgNeurons; ipost++) {
-                    const uint32_t idSyn = ((uint32_t)idPre * group->numTrgNeurons) + ipost;
-                    group->outPost[ipost] += group->g[idSyn];
-                }
-            }
-        }
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(presynapticUpdateStart));
+        const dim3 threads(32, 1);
+        const dim3 grid(17, 64);
+        updatePresynapticKernel<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(presynapticUpdateStop));
     }
-     {
-        // merged presynaptic update group 1
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedPresynapticUpdateGroup1[g]; 
-            
-            // process presynaptic events: Spike type events
-            for (unsigned int i = 0; i < group->srcSpkCntEvent[0]; i++) {
-                const unsigned int idPre = group->srcSpkEvent[i];
-                for (unsigned int ipost = 0; ipost < (256u); ipost++) {
-                    const uint32_t idSyn = ((uint32_t)idPre * (256u)) + ipost;
-                    group->Gradient[idSyn] -= (group->LambdaI_post[ipost] * (5.000000000e+00f));
-                }
-            }
-            // process presynaptic events: True Spikes
-            for (unsigned int i = 0; i < group->srcSpkCnt[0]; i++) {
-                const unsigned int idPre = group->srcSpk[i];
-                for (unsigned int ipost = 0; ipost < (256u); ipost++) {
-                    const uint32_t idSyn = ((uint32_t)idPre * (256u)) + ipost;
-                    group->outPost[ipost] += group->g[idSyn];
-                }
-            }
-        }
-    }
-    presynapticUpdateTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - presynapticUpdateStart).count();
-    const auto postsynapticUpdateStart = std::chrono::high_resolution_clock::now();
-    postsynapticUpdateTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - postsynapticUpdateStart).count();
 }

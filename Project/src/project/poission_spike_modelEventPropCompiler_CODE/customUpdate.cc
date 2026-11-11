@@ -9,15 +9,47 @@ struct MergedCustomUpdateGroup0
 ;
 struct MergedCustomUpdateGroup1
  {
-    float* __restrict__ LambdaI;
-    float* __restrict__ LambdaV;
-    int32_t* __restrict__ RingReadOffset;
-    int32_t* __restrict__ RingWriteOffset;
-    float* __restrict__ V;
+    float* __restrict__ MaxVal;
+    float* __restrict__ Val;
     
 }
 ;
 struct MergedCustomUpdateGroup2
+ {
+    uint8_t* __restrict__ YTrue;
+    uint8_t* __restrict__ YTrueBack;
+    
+}
+;
+struct MergedCustomUpdateGroup3
+ {
+    float* __restrict__ MaxVal;
+    float* __restrict__ SoftmaxVal;
+    float* __restrict__ SumExpVal;
+    float* __restrict__ Val;
+    
+}
+;
+struct MergedCustomUpdateGroup4
+ {
+    float* __restrict__ MaxVal;
+    float* __restrict__ SumExpVal;
+    float* __restrict__ Val;
+    
+}
+;
+struct MergedCustomUpdateGroup5
+ {
+    float* __restrict__ LambdaI;
+    float* __restrict__ LambdaV;
+    float* __restrict__ V;
+    float* __restrict__ VMax;
+    float* __restrict__ VMaxTime;
+    float* __restrict__ VMaxTimeBack;
+    
+}
+;
+struct MergedCustomUpdateGroup6
  {
     float* __restrict__ LambdaI;
     float* __restrict__ LambdaV;
@@ -30,7 +62,7 @@ struct MergedCustomUpdateGroup2
     
 }
 ;
-struct MergedCustomUpdateGroup3
+struct MergedCustomUpdateGroup7
  {
     int32_t* __restrict__ RingReadEndOffset;
     int32_t* __restrict__ RingReadOffset;
@@ -44,7 +76,7 @@ struct MergedCustomUpdateWUGroup0
  {
     float* __restrict__ Gradient;
     uint32_t numSrcNeurons;
-    uint32_t numTrgNeurons;
+    uint32_t rowStride;
     
 }
 ;
@@ -58,236 +90,610 @@ struct MergedCustomUpdateWUGroup1
     float MomentScale1;
     float MomentScale2;
     uint32_t numSrcNeurons;
-    uint32_t numTrgNeurons;
+    uint32_t rowStride;
     
 }
 ;
-static MergedCustomUpdateGroup0 mergedCustomUpdateGroup0[3];
+struct MergedCustomUpdateWUGroup2
+ {
+    float* __restrict__ Gradient;
+    float* __restrict__ ReducedGradient;
+    uint32_t numSrcNeurons;
+    uint32_t rowStride;
+    
+}
+;
+__device__ __constant__ MergedCustomUpdateGroup0 d_mergedCustomUpdateGroup0[3];
 void pushMergedCustomUpdateGroup0ToDevice(unsigned int idx, float* OutPost, uint32_t numNeurons) {
-    mergedCustomUpdateGroup0[idx].OutPost = OutPost;
-    mergedCustomUpdateGroup0[idx].numNeurons = numNeurons;
+    MergedCustomUpdateGroup0 group = {OutPost, numNeurons, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup0, &group, sizeof(MergedCustomUpdateGroup0), idx * sizeof(MergedCustomUpdateGroup0), cudaMemcpyHostToDevice, 0));
 }
-static MergedCustomUpdateGroup1 mergedCustomUpdateGroup1[1];
-void pushMergedCustomUpdateGroup1ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, int32_t* RingReadOffset, int32_t* RingWriteOffset, float* V) {
-    mergedCustomUpdateGroup1[idx].LambdaI = LambdaI;
-    mergedCustomUpdateGroup1[idx].LambdaV = LambdaV;
-    mergedCustomUpdateGroup1[idx].RingReadOffset = RingReadOffset;
-    mergedCustomUpdateGroup1[idx].RingWriteOffset = RingWriteOffset;
-    mergedCustomUpdateGroup1[idx].V = V;
+__device__ __constant__ MergedCustomUpdateGroup1 d_mergedCustomUpdateGroup1[1];
+void pushMergedCustomUpdateGroup1ToDevice(unsigned int idx, float* MaxVal, float* Val) {
+    MergedCustomUpdateGroup1 group = {MaxVal, Val, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup1, &group, sizeof(MergedCustomUpdateGroup1), idx * sizeof(MergedCustomUpdateGroup1), cudaMemcpyHostToDevice, 0));
 }
-static MergedCustomUpdateGroup2 mergedCustomUpdateGroup2[1];
-void pushMergedCustomUpdateGroup2ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* RefracTime, int32_t* RingReadEndOffset, int32_t* RingReadOffset, int32_t* RingWriteOffset, int32_t* RingWriteStartOffset, float* V) {
-    mergedCustomUpdateGroup2[idx].LambdaI = LambdaI;
-    mergedCustomUpdateGroup2[idx].LambdaV = LambdaV;
-    mergedCustomUpdateGroup2[idx].RefracTime = RefracTime;
-    mergedCustomUpdateGroup2[idx].RingReadEndOffset = RingReadEndOffset;
-    mergedCustomUpdateGroup2[idx].RingReadOffset = RingReadOffset;
-    mergedCustomUpdateGroup2[idx].RingWriteOffset = RingWriteOffset;
-    mergedCustomUpdateGroup2[idx].RingWriteStartOffset = RingWriteStartOffset;
-    mergedCustomUpdateGroup2[idx].V = V;
+__device__ __constant__ MergedCustomUpdateGroup2 d_mergedCustomUpdateGroup2[1];
+void pushMergedCustomUpdateGroup2ToDevice(unsigned int idx, uint8_t* YTrue, uint8_t* YTrueBack) {
+    MergedCustomUpdateGroup2 group = {YTrue, YTrueBack, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup2, &group, sizeof(MergedCustomUpdateGroup2), idx * sizeof(MergedCustomUpdateGroup2), cudaMemcpyHostToDevice, 0));
 }
-static MergedCustomUpdateGroup3 mergedCustomUpdateGroup3[1];
-void pushMergedCustomUpdateGroup3ToDevice(unsigned int idx, int32_t* RingReadEndOffset, int32_t* RingReadOffset, int32_t* RingWriteOffset, int32_t* RingWriteStartOffset, uint32_t* StartSpike) {
-    mergedCustomUpdateGroup3[idx].RingReadEndOffset = RingReadEndOffset;
-    mergedCustomUpdateGroup3[idx].RingReadOffset = RingReadOffset;
-    mergedCustomUpdateGroup3[idx].RingWriteOffset = RingWriteOffset;
-    mergedCustomUpdateGroup3[idx].RingWriteStartOffset = RingWriteStartOffset;
-    mergedCustomUpdateGroup3[idx].StartSpike = StartSpike;
+__device__ __constant__ MergedCustomUpdateGroup3 d_mergedCustomUpdateGroup3[1];
+void pushMergedCustomUpdateGroup3ToDevice(unsigned int idx, float* MaxVal, float* SoftmaxVal, float* SumExpVal, float* Val) {
+    MergedCustomUpdateGroup3 group = {MaxVal, SoftmaxVal, SumExpVal, Val, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup3, &group, sizeof(MergedCustomUpdateGroup3), idx * sizeof(MergedCustomUpdateGroup3), cudaMemcpyHostToDevice, 0));
 }
-static MergedCustomUpdateWUGroup0 mergedCustomUpdateWUGroup0[3];
-void pushMergedCustomUpdateWUGroup0ToDevice(unsigned int idx, float* Gradient, uint32_t numSrcNeurons, uint32_t numTrgNeurons) {
-    mergedCustomUpdateWUGroup0[idx].Gradient = Gradient;
-    mergedCustomUpdateWUGroup0[idx].numSrcNeurons = numSrcNeurons;
-    mergedCustomUpdateWUGroup0[idx].numTrgNeurons = numTrgNeurons;
+__device__ __constant__ MergedCustomUpdateGroup4 d_mergedCustomUpdateGroup4[1];
+void pushMergedCustomUpdateGroup4ToDevice(unsigned int idx, float* MaxVal, float* SumExpVal, float* Val) {
+    MergedCustomUpdateGroup4 group = {MaxVal, SumExpVal, Val, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup4, &group, sizeof(MergedCustomUpdateGroup4), idx * sizeof(MergedCustomUpdateGroup4), cudaMemcpyHostToDevice, 0));
 }
-static MergedCustomUpdateWUGroup1 mergedCustomUpdateWUGroup1[3];
-void pushMergedCustomUpdateWUGroup1ToDevice(unsigned int idx, float* Gradient, float* M, float* V, float* Variable, float Alpha, float MomentScale1, float MomentScale2, uint32_t numSrcNeurons, uint32_t numTrgNeurons) {
-    mergedCustomUpdateWUGroup1[idx].Gradient = Gradient;
-    mergedCustomUpdateWUGroup1[idx].M = M;
-    mergedCustomUpdateWUGroup1[idx].V = V;
-    mergedCustomUpdateWUGroup1[idx].Variable = Variable;
-    mergedCustomUpdateWUGroup1[idx].Alpha = Alpha;
-    mergedCustomUpdateWUGroup1[idx].MomentScale1 = MomentScale1;
-    mergedCustomUpdateWUGroup1[idx].MomentScale2 = MomentScale2;
-    mergedCustomUpdateWUGroup1[idx].numSrcNeurons = numSrcNeurons;
-    mergedCustomUpdateWUGroup1[idx].numTrgNeurons = numTrgNeurons;
+__device__ __constant__ MergedCustomUpdateGroup5 d_mergedCustomUpdateGroup5[1];
+void pushMergedCustomUpdateGroup5ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* V, float* VMax, float* VMaxTime, float* VMaxTimeBack) {
+    MergedCustomUpdateGroup5 group = {LambdaI, LambdaV, V, VMax, VMaxTime, VMaxTimeBack, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup5, &group, sizeof(MergedCustomUpdateGroup5), idx * sizeof(MergedCustomUpdateGroup5), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomUpdateGroup6 d_mergedCustomUpdateGroup6[1];
+void pushMergedCustomUpdateGroup6ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* RefracTime, int32_t* RingReadEndOffset, int32_t* RingReadOffset, int32_t* RingWriteOffset, int32_t* RingWriteStartOffset, float* V) {
+    MergedCustomUpdateGroup6 group = {LambdaI, LambdaV, RefracTime, RingReadEndOffset, RingReadOffset, RingWriteOffset, RingWriteStartOffset, V, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup6, &group, sizeof(MergedCustomUpdateGroup6), idx * sizeof(MergedCustomUpdateGroup6), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomUpdateGroup7 d_mergedCustomUpdateGroup7[1];
+void pushMergedCustomUpdateGroup7ToDevice(unsigned int idx, int32_t* RingReadEndOffset, int32_t* RingReadOffset, int32_t* RingWriteOffset, int32_t* RingWriteStartOffset, uint32_t* StartSpike) {
+    MergedCustomUpdateGroup7 group = {RingReadEndOffset, RingReadOffset, RingWriteOffset, RingWriteStartOffset, StartSpike, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateGroup7, &group, sizeof(MergedCustomUpdateGroup7), idx * sizeof(MergedCustomUpdateGroup7), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomUpdateWUGroup0 d_mergedCustomUpdateWUGroup0[3];
+void pushMergedCustomUpdateWUGroup0ToDevice(unsigned int idx, float* Gradient, uint32_t numSrcNeurons, uint32_t rowStride) {
+    MergedCustomUpdateWUGroup0 group = {Gradient, numSrcNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateWUGroup0, &group, sizeof(MergedCustomUpdateWUGroup0), idx * sizeof(MergedCustomUpdateWUGroup0), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomUpdateWUGroup1 d_mergedCustomUpdateWUGroup1[3];
+void pushMergedCustomUpdateWUGroup1ToDevice(unsigned int idx, float* Gradient, float* M, float* V, float* Variable, float Alpha, float MomentScale1, float MomentScale2, uint32_t numSrcNeurons, uint32_t rowStride) {
+    MergedCustomUpdateWUGroup1 group = {Gradient, M, V, Variable, Alpha, MomentScale1, MomentScale2, numSrcNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateWUGroup1, &group, sizeof(MergedCustomUpdateWUGroup1), idx * sizeof(MergedCustomUpdateWUGroup1), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomUpdateWUGroup2 d_mergedCustomUpdateWUGroup2[3];
+void pushMergedCustomUpdateWUGroup2ToDevice(unsigned int idx, float* Gradient, float* ReducedGradient, uint32_t numSrcNeurons, uint32_t rowStride) {
+    MergedCustomUpdateWUGroup2 group = {Gradient, ReducedGradient, numSrcNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateWUGroup2, &group, sizeof(MergedCustomUpdateWUGroup2), idx * sizeof(MergedCustomUpdateWUGroup2), cudaMemcpyHostToDevice, 0));
 }
 void pushMergedCustomUpdateWU1AlphaToDevice(unsigned int idx, float value) {
-    mergedCustomUpdateWUGroup1[idx].Alpha = value;
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateWUGroup1, &value, sizeof(value), (sizeof(MergedCustomUpdateWUGroup1) * (idx)) + offsetof(MergedCustomUpdateWUGroup1, Alpha), cudaMemcpyHostToDevice, 0));
 }
 void pushMergedCustomUpdateWU1MomentScale1ToDevice(unsigned int idx, float value) {
-    mergedCustomUpdateWUGroup1[idx].MomentScale1 = value;
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateWUGroup1, &value, sizeof(value), (sizeof(MergedCustomUpdateWUGroup1) * (idx)) + offsetof(MergedCustomUpdateWUGroup1, MomentScale1), cudaMemcpyHostToDevice, 0));
 }
 void pushMergedCustomUpdateWU1MomentScale2ToDevice(unsigned int idx, float value) {
-    mergedCustomUpdateWUGroup1[idx].MomentScale2 = value;
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateWUGroup1, &value, sizeof(value), (sizeof(MergedCustomUpdateWUGroup1) * (idx)) + offsetof(MergedCustomUpdateWUGroup1, MomentScale2), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID1[] = {0, };
+extern "C" __global__ void customUpdateBatchSoftmax1(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // merged1
+    if(id < 2048) {
+        const unsigned int lid = id - 0;
+        struct MergedCustomUpdateGroup1 *group = &d_mergedCustomUpdateGroup1[0]; 
+        const unsigned int batch = lid / 32;
+        // only do this for existing neurons
+        if(lid < 2048) {
+            const unsigned int lane = lid % 32;
+            const unsigned int batchOffset = (17u) * batch;
+            float _lrMaxVal = -3.402823466e+38f;
+            for(unsigned int idx = lane; idx < (17u); idx += 32) {
+                float _lMaxVal;
+                const float _lVal = group->Val[batchOffset + idx];
+                _lMaxVal = _lVal;
+                _lrMaxVal = fmax(_lrMaxVal, _lMaxVal);
+            }
+            _lrMaxVal = fmax(_lrMaxVal, __shfl_down_sync(0xFFFFFFFF, _lrMaxVal, 16));
+            _lrMaxVal = fmax(_lrMaxVal, __shfl_down_sync(0xFFFFFFFF, _lrMaxVal, 8));
+            _lrMaxVal = fmax(_lrMaxVal, __shfl_down_sync(0xFFFFFFFF, _lrMaxVal, 4));
+            _lrMaxVal = fmax(_lrMaxVal, __shfl_down_sync(0xFFFFFFFF, _lrMaxVal, 2));
+            _lrMaxVal = fmax(_lrMaxVal, __shfl_down_sync(0xFFFFFFFF, _lrMaxVal, 1));
+            if(lane == 0) {
+                group->MaxVal[batch] = _lrMaxVal;
+            }
+        }
+    }
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
+}
+void updateBatchSoftmax1(unsigned long long timestep) {
+    const float t = timestep * 1.000000000e+00f;
+     {
+        const dim3 threads(64, 1);
+        const dim3 grid(32, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateBatchSoftmax1Start));
+        customUpdateBatchSoftmax1<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateBatchSoftmax1Stop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateBatchSoftmax1Stop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateBatchSoftmax1Start, customUpdateBatchSoftmax1Stop));
+        customUpdateBatchSoftmax1Time += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID4[] = {0, };
+extern "C" __global__ void customUpdateBatchSoftmax2(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // merged4
+    if(id < 2048) {
+        const unsigned int lid = id - 0;
+        struct MergedCustomUpdateGroup4 *group = &d_mergedCustomUpdateGroup4[0]; 
+        const unsigned int batch = lid / 32;
+        // only do this for existing neurons
+        if(lid < 2048) {
+            const unsigned int lane = lid % 32;
+            const unsigned int batchOffset = (17u) * batch;
+            float _lrSumExpVal = 0.0f;
+            for(unsigned int idx = lane; idx < (17u); idx += 32) {
+                float _lSumExpVal;
+                const float _lMaxVal = group->MaxVal[batch];
+                const float _lVal = group->Val[batchOffset + idx];
+                _lSumExpVal = exp((_lVal - _lMaxVal) / (1.000000000e+00f));
+                _lrSumExpVal += _lSumExpVal;
+            }
+            _lrSumExpVal += __shfl_down_sync(0xFFFFFFFF, _lrSumExpVal, 16);
+            _lrSumExpVal += __shfl_down_sync(0xFFFFFFFF, _lrSumExpVal, 8);
+            _lrSumExpVal += __shfl_down_sync(0xFFFFFFFF, _lrSumExpVal, 4);
+            _lrSumExpVal += __shfl_down_sync(0xFFFFFFFF, _lrSumExpVal, 2);
+            _lrSumExpVal += __shfl_down_sync(0xFFFFFFFF, _lrSumExpVal, 1);
+            if(lane == 0) {
+                group->SumExpVal[batch] = _lrSumExpVal;
+            }
+        }
+    }
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
+}
+void updateBatchSoftmax2(unsigned long long timestep) {
+    const float t = timestep * 1.000000000e+00f;
+     {
+        const dim3 threads(64, 1);
+        const dim3 grid(32, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateBatchSoftmax2Start));
+        customUpdateBatchSoftmax2<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateBatchSoftmax2Stop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateBatchSoftmax2Stop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateBatchSoftmax2Start, customUpdateBatchSoftmax2Stop));
+        customUpdateBatchSoftmax2Time += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID3[] = {0, };
+extern "C" __global__ void customUpdateBatchSoftmax3(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // merged3
+    if(id < 4096) {
+        const unsigned int lid = id - 0;
+        struct MergedCustomUpdateGroup3 *group = &d_mergedCustomUpdateGroup3[0]; 
+        const unsigned int paddedSize = 64 * (((17u) + 64 - 1) / 64);
+        const unsigned int bid = lid % paddedSize;
+        const unsigned int batch = lid / paddedSize;
+        const unsigned int batchOffset = (17u) * batch;
+        // only do this for existing neurons
+        if(bid < (17u)) {
+            float _lSoftmaxVal = group->SoftmaxVal[batchOffset + bid];
+            const float _lSumExpVal = group->SumExpVal[batch];
+            const float _lMaxVal = group->MaxVal[batch];
+            const float _lVal = group->Val[batchOffset + bid];
+            _lSoftmaxVal = exp((_lVal - _lMaxVal) / (1.000000000e+00f)) / _lSumExpVal;
+            group->SoftmaxVal[batchOffset + bid] = _lSoftmaxVal;
+        }
+    }
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
+}
+void updateBatchSoftmax3(unsigned long long timestep) {
+    const float t = timestep * 1.000000000e+00f;
+     {
+        const dim3 threads(64, 1);
+        const dim3 grid(64, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateBatchSoftmax3Start));
+        customUpdateBatchSoftmax3<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateBatchSoftmax3Stop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateBatchSoftmax3Stop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateBatchSoftmax3Start, customUpdateBatchSoftmax3Stop));
+        customUpdateBatchSoftmax3Time += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateWUGroupStartID2[] = {0, 29440, 94976, };
+extern "C" __global__ void customUpdateGradientBatchReduce(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // merged2
+    if(id < 99328) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedCustomUpdateWUGroupStartID2[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
+            }
+        }
+        struct MergedCustomUpdateWUGroup2 *group = &d_mergedCustomUpdateWUGroup2[lo - 1]; 
+        const unsigned int groupStartID = d_mergedCustomUpdateWUGroupStartID2[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        const uint32_t size = (uint32_t)group->numSrcNeurons * group->rowStride;
+        if (lid < size) {
+            float _lrReducedGradient = 0.0f;
+            for(unsigned int batch = 0; batch < 64; batch++) {
+                const unsigned int batchOffset = size * batch;
+                float _lReducedGradient;
+                float _lGradient = group->Gradient[batchOffset + lid];
+                _lReducedGradient = _lGradient;
+                _lGradient = 0;
+                _lrReducedGradient += _lReducedGradient;
+                group->Gradient[batchOffset + lid] = _lGradient;
+            }
+            group->ReducedGradient[lid] = _lrReducedGradient;
+        }
+    }
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
+}
+void updateGradientBatchReduce(unsigned long long timestep) {
+    const float t = timestep * 1.000000000e+00f;
+     {
+        const dim3 threads(64, 1);
+        const dim3 grid(1552, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateGradientBatchReduceStart));
+        customUpdateGradientBatchReduce<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateGradientBatchReduceStop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateGradientBatchReduceStop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateGradientBatchReduceStart, customUpdateGradientBatchReduceStop));
+        customUpdateGradientBatchReduceTime += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateWUGroupStartID1[] = {0, 29440, 94976, };
+extern "C" __global__ void customUpdateGradientLearn(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // merged1
+    if(id < 99328) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedCustomUpdateWUGroupStartID1[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
+            }
+        }
+        struct MergedCustomUpdateWUGroup1 *group = &d_mergedCustomUpdateWUGroup1[lo - 1]; 
+        const unsigned int groupStartID = d_mergedCustomUpdateWUGroupStartID1[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        const uint32_t size = (uint32_t)group->numSrcNeurons * group->rowStride;
+        if (lid < size) {
+            float _lV = group->V[lid];
+            float _lM = group->M[lid];
+            float _lVariable = group->Variable[lid];
+            const float _lGradient = group->Gradient[lid];
+            _lM = ((9.000000000e-01f) * _lM) + ((1.0f - (9.000000000e-01f)) * _lGradient);
+            _lV = ((9.990000000e-01f) * _lV) + ((1.0f - (9.990000000e-01f)) * _lGradient * _lGradient);
+            _lVariable -= (group->Alpha * _lM * group->MomentScale1) / (sqrt(_lV * group->MomentScale2) + (1.000000000e-08f));
+            group->Variable[lid] = _lVariable;
+            group->V[lid] = _lV;
+            group->M[lid] = _lM;
+        }
+    }
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
 }
 void updateGradientLearn(unsigned long long timestep) {
-    const auto customUpdateGradientLearnStart = std::chrono::high_resolution_clock::now();
+    const float t = timestep * 1.000000000e+00f;
      {
-        // merged custom WU update group 1
-        for(unsigned int g = 0; g < 3; g++) {
-            const auto *group = &mergedCustomUpdateWUGroup1[g]; 
-            for(unsigned int i = 0; i < group->numSrcNeurons; i++) {
-                for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
-                    const unsigned int idSyn = (i * group->numTrgNeurons) + j;
-                    float _lV = group->V[idSyn];
-                    float _lM = group->M[idSyn];
-                    float _lVariable = group->Variable[idSyn];
-                    float _lGradient = group->Gradient[idSyn];
-                    _lM = ((9.000000000e-01f) * _lM) + ((1.0f - (9.000000000e-01f)) * _lGradient);
-                    _lV = ((9.990000000e-01f) * _lV) + ((1.0f - (9.990000000e-01f)) * _lGradient * _lGradient);
-                    _lVariable -= (group->Alpha * _lM * group->MomentScale1) / (sqrt(_lV * group->MomentScale2) + (1.000000000e-08f));
-                    _lGradient = 0.0f;
-                    group->Variable[idSyn] = _lVariable;
-                    group->Gradient[idSyn] = _lGradient;
-                    group->V[idSyn] = _lV;
-                    group->M[idSyn] = _lM;
-                }
-            }
+        const dim3 threads(64, 1);
+        const dim3 grid(1552, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateGradientLearnStart));
+        customUpdateGradientLearn<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateGradientLearnStop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateGradientLearnStop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateGradientLearnStart, customUpdateGradientLearnStop));
+        customUpdateGradientLearnTime += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID2[] = {0, };
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID5[] = {64, };
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID6[] = {4160, };
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID7[] = {20544, };
+extern "C" __global__ void customUpdateReset(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // merged2
+    if(id < 64) {
+        const unsigned int lid = id - 0;
+        struct MergedCustomUpdateGroup2 *group = &d_mergedCustomUpdateGroup2[0]; 
+        // only do this for existing neurons
+        if(lid < 64) {
+            const uint8_t _lYTrue = group->YTrue[lid];
+            uint8_t _lYTrueBack;
+            _lYTrueBack = _lYTrue;
+            group->YTrueBack[lid] = _lYTrueBack;
         }
     }
-    customUpdateGradientLearnTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateGradientLearnStart).count();
-    const auto customUpdateGradientLearnRemapStart = std::chrono::high_resolution_clock::now();
-    customUpdateGradientLearnRemapTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateGradientLearnRemapStart).count();
-    const auto customUpdateGradientLearnTransposeStart = std::chrono::high_resolution_clock::now();
-    customUpdateGradientLearnTransposeTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateGradientLearnTransposeStart).count();
+    // merged5
+    if(id >= 64 && id < 4160) {
+        const unsigned int lid = id - 64;
+        struct MergedCustomUpdateGroup5 *group = &d_mergedCustomUpdateGroup5[0]; 
+        const unsigned int paddedSize = 64 * (((17u) + 64 - 1) / 64);
+        const unsigned int bid = lid % paddedSize;
+        const unsigned int batch = lid / paddedSize;
+        const unsigned int batchOffset = (17u) * batch;
+        // only do this for existing neurons
+        if(bid < (17u)) {
+            float _lLambdaV;
+            float _lLambdaI;
+            float _lVMaxTime = group->VMaxTime[batchOffset + bid];
+            float _lVMax;
+            float _lV;
+            float _lVMaxTimeBack;
+            _lVMaxTimeBack = _lVMaxTime;
+            _lV = (0.000000000e+00f);
+            _lVMax = (0.0f);
+            _lVMaxTime = (0.0f);
+            _lLambdaV = (0.000000000e+00f);
+            _lLambdaI = (0.000000000e+00f);
+            group->LambdaV[batchOffset + bid] = _lLambdaV;
+            group->LambdaI[batchOffset + bid] = _lLambdaI;
+            group->VMaxTime[batchOffset + bid] = _lVMaxTime;
+            group->VMax[batchOffset + bid] = _lVMax;
+            group->V[batchOffset + bid] = _lV;
+            group->VMaxTimeBack[batchOffset + bid] = _lVMaxTimeBack;
+        }
+    }
+    // merged6
+    if(id >= 4160 && id < 20544) {
+        const unsigned int lid = id - 4160;
+        struct MergedCustomUpdateGroup6 *group = &d_mergedCustomUpdateGroup6[0]; 
+        const unsigned int paddedSize = 64 * (((256u) + 64 - 1) / 64);
+        const unsigned int bid = lid % paddedSize;
+        const unsigned int batch = lid / paddedSize;
+        const unsigned int batchOffset = (256u) * batch;
+        // only do this for existing neurons
+        if(bid < (256u)) {
+            int32_t _lRingReadEndOffset = group->RingReadEndOffset[batchOffset + bid];
+            int32_t _lRingWriteStartOffset = group->RingWriteStartOffset[batchOffset + bid];
+            int32_t _lRingWriteOffset = group->RingWriteOffset[batchOffset + bid];
+            int32_t _lRingReadOffset = group->RingReadOffset[batchOffset + bid];
+            float _lLambdaI;
+            float _lLambdaV;
+            float _lRefracTime;
+            float _lV;
+            _lV = (0.000000000e+00f);
+            _lRefracTime = (0.000000000e+00f);
+            _lLambdaV = (0.000000000e+00f);
+            _lLambdaI = (0.000000000e+00f);
+            _lRingReadOffset = _lRingWriteOffset - 1;
+            if(_lRingReadOffset < 0)
+             {
+                _lRingReadOffset = 499;
+            }
+            
+            _lRingReadEndOffset = _lRingWriteStartOffset;
+            _lRingWriteStartOffset = _lRingReadOffset;
+            group->RingReadEndOffset[batchOffset + bid] = _lRingReadEndOffset;
+            group->RingWriteStartOffset[batchOffset + bid] = _lRingWriteStartOffset;
+            group->RingWriteOffset[batchOffset + bid] = _lRingWriteOffset;
+            group->RingReadOffset[batchOffset + bid] = _lRingReadOffset;
+            group->LambdaI[batchOffset + bid] = _lLambdaI;
+            group->LambdaV[batchOffset + bid] = _lLambdaV;
+            group->RefracTime[batchOffset + bid] = _lRefracTime;
+            group->V[batchOffset + bid] = _lV;
+        }
+    }
+    // merged7
+    if(id >= 20544 && id < 28736) {
+        const unsigned int lid = id - 20544;
+        struct MergedCustomUpdateGroup7 *group = &d_mergedCustomUpdateGroup7[0]; 
+        const unsigned int paddedSize = 64 * (((115u) + 64 - 1) / 64);
+        const unsigned int bid = lid % paddedSize;
+        const unsigned int batch = lid / paddedSize;
+        const unsigned int batchOffset = (115u) * batch;
+        // only do this for existing neurons
+        if(bid < (115u)) {
+            int32_t _lRingReadEndOffset = group->RingReadEndOffset[batchOffset + bid];
+            int32_t _lRingWriteStartOffset = group->RingWriteStartOffset[batchOffset + bid];
+            int32_t _lRingWriteOffset = group->RingWriteOffset[batchOffset + bid];
+            int32_t _lRingReadOffset = group->RingReadOffset[batchOffset + bid];
+            uint32_t _lStartSpike;
+            _lStartSpike = (0u);
+            _lRingReadOffset = _lRingWriteOffset - 1;
+            if(_lRingReadOffset < 0)
+             {
+                _lRingReadOffset = 499;
+            }
+            
+            _lRingReadEndOffset = _lRingWriteStartOffset;
+            _lRingWriteStartOffset = _lRingReadOffset;
+            group->RingReadEndOffset[batchOffset + bid] = _lRingReadEndOffset;
+            group->RingWriteStartOffset[batchOffset + bid] = _lRingWriteStartOffset;
+            group->RingWriteOffset[batchOffset + bid] = _lRingWriteOffset;
+            group->RingReadOffset[batchOffset + bid] = _lRingReadOffset;
+            group->StartSpike[batchOffset + bid] = _lStartSpike;
+        }
+    }
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
 }
 void updateReset(unsigned long long timestep) {
-    const auto customUpdateResetStart = std::chrono::high_resolution_clock::now();
+    const float t = timestep * 1.000000000e+00f;
      {
-        // merged custom update group 1
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedCustomUpdateGroup1[g]; 
-            for(unsigned int i = 0; i < (17u); i++) {
-                int32_t _lRingWriteOffset = group->RingWriteOffset[i];
-                int32_t _lRingReadOffset = group->RingReadOffset[i];
-                float _lLambdaI;
-                float _lLambdaV;
-                float _lV;
-                _lV = (0.000000000e+00f);
-                _lLambdaV = (0.000000000e+00f);
-                _lLambdaI = (0.000000000e+00f);
-                _lRingReadOffset = _lRingWriteOffset;
-                if(_lRingWriteOffset >= 1360)
-                 {
-                    _lRingWriteOffset = 0;
-                }
-                
-                group->RingWriteOffset[i] = _lRingWriteOffset;
-                group->RingReadOffset[i] = _lRingReadOffset;
-                group->LambdaI[i] = _lLambdaI;
-                group->LambdaV[i] = _lLambdaV;
-                group->V[i] = _lV;
+        const dim3 threads(64, 1);
+        const dim3 grid(449, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateResetStart));
+        customUpdateReset<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateResetStop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateResetStop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateResetStart, customUpdateResetStop));
+        customUpdateResetTime += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateWUGroupStartID0[] = {0, 1884160, 6078464, };
+extern "C" __global__ void customUpdateZeroGradient(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // merged0
+    if(id < 6356992) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedCustomUpdateWUGroupStartID0[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
             }
         }
-    }
-     {
-        // merged custom update group 2
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedCustomUpdateGroup2[g]; 
-            for(unsigned int i = 0; i < (256u); i++) {
-                int32_t _lRingReadEndOffset = group->RingReadEndOffset[i];
-                int32_t _lRingWriteStartOffset = group->RingWriteStartOffset[i];
-                int32_t _lRingWriteOffset = group->RingWriteOffset[i];
-                int32_t _lRingReadOffset = group->RingReadOffset[i];
-                float _lLambdaI;
-                float _lLambdaV;
-                float _lRefracTime;
-                float _lV;
-                _lV = (0.000000000e+00f);
-                _lRefracTime = (0.000000000e+00f);
-                _lLambdaV = (0.000000000e+00f);
-                _lLambdaI = (0.000000000e+00f);
-                _lRingReadOffset = _lRingWriteOffset - 1;
-                if(_lRingReadOffset < 0)
-                 {
-                    _lRingReadOffset = 499;
-                }
-                
-                _lRingReadEndOffset = _lRingWriteStartOffset;
-                _lRingWriteStartOffset = _lRingReadOffset;
-                group->RingReadEndOffset[i] = _lRingReadEndOffset;
-                group->RingWriteStartOffset[i] = _lRingWriteStartOffset;
-                group->RingWriteOffset[i] = _lRingWriteOffset;
-                group->RingReadOffset[i] = _lRingReadOffset;
-                group->LambdaI[i] = _lLambdaI;
-                group->LambdaV[i] = _lLambdaV;
-                group->RefracTime[i] = _lRefracTime;
-                group->V[i] = _lV;
-            }
+        struct MergedCustomUpdateWUGroup0 *group = &d_mergedCustomUpdateWUGroup0[lo - 1]; 
+        const unsigned int groupStartID = d_mergedCustomUpdateWUGroupStartID0[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        const uint32_t size = (uint32_t)group->numSrcNeurons * group->rowStride;
+        const unsigned int paddedSize = 64 * ((size + 64 - 1) / 64);
+        const unsigned int bid = lid % paddedSize;
+        const unsigned int batch = lid / paddedSize;
+        if (bid < size) {
+            const unsigned int batchOffset = size * batch;
+            float _lGradient;
+            _lGradient = (0.000000000e+00f);
+            group->Gradient[batchOffset + bid] = _lGradient;
         }
     }
-     {
-        // merged custom update group 3
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedCustomUpdateGroup3[g]; 
-            for(unsigned int i = 0; i < (115u); i++) {
-                int32_t _lRingReadEndOffset = group->RingReadEndOffset[i];
-                int32_t _lRingWriteStartOffset = group->RingWriteStartOffset[i];
-                int32_t _lRingWriteOffset = group->RingWriteOffset[i];
-                int32_t _lRingReadOffset = group->RingReadOffset[i];
-                uint32_t _lStartSpike;
-                _lStartSpike = (0u);
-                _lRingReadOffset = _lRingWriteOffset - 1;
-                if(_lRingReadOffset < 0)
-                 {
-                    _lRingReadOffset = 499;
-                }
-                
-                _lRingReadEndOffset = _lRingWriteStartOffset;
-                _lRingWriteStartOffset = _lRingReadOffset;
-                group->RingReadEndOffset[i] = _lRingReadEndOffset;
-                group->RingWriteStartOffset[i] = _lRingWriteStartOffset;
-                group->RingWriteOffset[i] = _lRingWriteOffset;
-                group->RingReadOffset[i] = _lRingReadOffset;
-                group->StartSpike[i] = _lStartSpike;
-            }
-        }
-    }
-    customUpdateResetTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateResetStart).count();
-    const auto customUpdateResetRemapStart = std::chrono::high_resolution_clock::now();
-    customUpdateResetRemapTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateResetRemapStart).count();
-    const auto customUpdateResetTransposeStart = std::chrono::high_resolution_clock::now();
-    customUpdateResetTransposeTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateResetTransposeStart).count();
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
 }
 void updateZeroGradient(unsigned long long timestep) {
-    const auto customUpdateZeroGradientStart = std::chrono::high_resolution_clock::now();
+    const float t = timestep * 1.000000000e+00f;
      {
-        // merged custom WU update group 0
-        for(unsigned int g = 0; g < 3; g++) {
-            const auto *group = &mergedCustomUpdateWUGroup0[g]; 
-            for(unsigned int i = 0; i < group->numSrcNeurons; i++) {
-                for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
-                    const unsigned int idSyn = (i * group->numTrgNeurons) + j;
-                    float _lGradient;
-                    _lGradient = (0.000000000e+00f);
-                    group->Gradient[idSyn] = _lGradient;
-                }
+        const dim3 threads(64, 1);
+        const dim3 grid(99328, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateZeroGradientStart));
+        customUpdateZeroGradient<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateZeroGradientStop));
+    }
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateZeroGradientStop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateZeroGradientStart, customUpdateZeroGradientStop));
+        customUpdateZeroGradientTime += tmp / 1000.0;
+    }
+}
+__device__ __constant__ unsigned int d_mergedCustomUpdateGroupStartID0[] = {0, 16384, 32768, };
+extern "C" __global__ void customUpdateZeroOutPost(float t)
+ {
+    const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    // ------------------------------------------------------------------------
+    // Custom updates
+    // merged0
+    if(id < 36864) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedCustomUpdateGroupStartID0[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
             }
         }
+        struct MergedCustomUpdateGroup0 *group = &d_mergedCustomUpdateGroup0[lo - 1]; 
+        const unsigned int groupStartID = d_mergedCustomUpdateGroupStartID0[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        const unsigned int paddedSize = 64 * ((group->numNeurons + 64 - 1) / 64);
+        const unsigned int bid = lid % paddedSize;
+        const unsigned int batch = lid / paddedSize;
+        const unsigned int batchOffset = group->numNeurons * batch;
+        // only do this for existing neurons
+        if(bid < group->numNeurons) {
+            float _lOutPost;
+            _lOutPost = (0.000000000e+00f);
+            group->OutPost[batchOffset + bid] = _lOutPost;
+        }
     }
-    customUpdateZeroGradientTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateZeroGradientStart).count();
-    const auto customUpdateZeroGradientRemapStart = std::chrono::high_resolution_clock::now();
-    customUpdateZeroGradientRemapTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateZeroGradientRemapStart).count();
-    const auto customUpdateZeroGradientTransposeStart = std::chrono::high_resolution_clock::now();
-    customUpdateZeroGradientTransposeTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateZeroGradientTransposeStart).count();
+    // ------------------------------------------------------------------------
+    // Custom WU updates
+    // ------------------------------------------------------------------------
+    // Custom connectivity updates
 }
 void updateZeroOutPost(unsigned long long timestep) {
-    const auto customUpdateZeroOutPostStart = std::chrono::high_resolution_clock::now();
+    const float t = timestep * 1.000000000e+00f;
      {
-        // merged custom update group 0
-        for(unsigned int g = 0; g < 3; g++) {
-            const auto *group = &mergedCustomUpdateGroup0[g]; 
-            for(unsigned int i = 0; i < group->numNeurons; i++) {
-                float _lOutPost;
-                _lOutPost = (0.000000000e+00f);
-                group->OutPost[i] = _lOutPost;
-            }
-        }
+        const dim3 threads(64, 1);
+        const dim3 grid(576, 1);
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateZeroOutPostStart));
+        customUpdateZeroOutPost<<<grid, threads>>>(t);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(customUpdateZeroOutPostStop));
     }
-    customUpdateZeroOutPostTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateZeroOutPostStart).count();
-    const auto customUpdateZeroOutPostRemapStart = std::chrono::high_resolution_clock::now();
-    customUpdateZeroOutPostRemapTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateZeroOutPostRemapStart).count();
-    const auto customUpdateZeroOutPostTransposeStart = std::chrono::high_resolution_clock::now();
-    customUpdateZeroOutPostTransposeTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - customUpdateZeroOutPostTransposeStart).count();
+    CHECK_RUNTIME_ERRORS(cudaEventSynchronize(customUpdateZeroOutPostStop)); 
+     {
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, customUpdateZeroOutPostStart, customUpdateZeroOutPostStop));
+        customUpdateZeroOutPostTime += tmp / 1000.0;
+    }
 }

@@ -1,11 +1,19 @@
 #include "definitions.h"
+#include <iostream>
+#include <random>
+#include <cstdint>
+
 struct MergedNeuronInitGroup0
  {
     float* __restrict__ LambdaI;
     float* __restrict__ LambdaV;
-    int32_t* __restrict__ RingReadOffset;
-    int32_t* __restrict__ RingWriteOffset;
+    float* __restrict__ Softmax;
     float* __restrict__ V;
+    float* __restrict__ VMax;
+    float* __restrict__ VMaxTime;
+    float* __restrict__ VMaxTimeBack;
+    uint8_t* __restrict__ YTrue;
+    uint8_t* __restrict__ YTrueBack;
     float* __restrict__ outPostInSyn0;
     
 }
@@ -58,6 +66,18 @@ struct MergedSynapseInitGroup0
     
 }
 ;
+struct MergedCustomUpdateInitGroup0
+ {
+    float* __restrict__ SumExpVal;
+    
+}
+;
+struct MergedCustomUpdateInitGroup1
+ {
+    float* __restrict__ MaxVal;
+    
+}
+;
 struct MergedCustomWUUpdateInitGroup0
  {
     float* __restrict__ M;
@@ -68,337 +88,504 @@ struct MergedCustomWUUpdateInitGroup0
     
 }
 ;
-static MergedNeuronInitGroup0 mergedNeuronInitGroup0[1];
-void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, int32_t* RingReadOffset, int32_t* RingWriteOffset, float* V, float* outPostInSyn0) {
-    mergedNeuronInitGroup0[idx].LambdaI = LambdaI;
-    mergedNeuronInitGroup0[idx].LambdaV = LambdaV;
-    mergedNeuronInitGroup0[idx].RingReadOffset = RingReadOffset;
-    mergedNeuronInitGroup0[idx].RingWriteOffset = RingWriteOffset;
-    mergedNeuronInitGroup0[idx].V = V;
-    mergedNeuronInitGroup0[idx].outPostInSyn0 = outPostInSyn0;
+struct MergedCustomWUUpdateInitGroup1
+ {
+    float* __restrict__ ReducedGradient;
+    uint32_t numSrcNeurons;
+    uint32_t numTrgNeurons;
+    uint32_t rowStride;
+    
 }
-static MergedNeuronInitGroup1 mergedNeuronInitGroup1[1];
+;
+__device__ __constant__ MergedNeuronInitGroup0 d_mergedNeuronInitGroup0[1];
+void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* Softmax, float* V, float* VMax, float* VMaxTime, float* VMaxTimeBack, uint8_t* YTrue, uint8_t* YTrueBack, float* outPostInSyn0) {
+    MergedNeuronInitGroup0 group = {LambdaI, LambdaV, Softmax, V, VMax, VMaxTime, VMaxTimeBack, YTrue, YTrueBack, outPostInSyn0, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronInitGroup0, &group, sizeof(MergedNeuronInitGroup0), idx * sizeof(MergedNeuronInitGroup0), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedNeuronInitGroup1 d_mergedNeuronInitGroup1[1];
 void pushMergedNeuronInitGroup1ToDevice(unsigned int idx, float* V, uint32_t* spkSynSpike0, uint32_t* spkEventSynSpikeEvent0, uint32_t* spkCntSynSpike0, uint32_t* spkCntEventSynSpikeEvent0, float* outPreOutSyn1, float* outPreOutSyn0, float* outPostInSyn1, float* outPostInSyn0, uint8_t* BackSpike, int32_t* RingWriteStartOffset, int32_t* RingWriteOffset, int32_t* RingReadOffset, int32_t* RingReadEndOffset, float* RefracTime, float* LambdaV, float* LambdaI) {
-    mergedNeuronInitGroup1[idx].V = V;
-    mergedNeuronInitGroup1[idx].spkSynSpike0 = spkSynSpike0;
-    mergedNeuronInitGroup1[idx].spkEventSynSpikeEvent0 = spkEventSynSpikeEvent0;
-    mergedNeuronInitGroup1[idx].spkCntSynSpike0 = spkCntSynSpike0;
-    mergedNeuronInitGroup1[idx].spkCntEventSynSpikeEvent0 = spkCntEventSynSpikeEvent0;
-    mergedNeuronInitGroup1[idx].outPreOutSyn1 = outPreOutSyn1;
-    mergedNeuronInitGroup1[idx].outPreOutSyn0 = outPreOutSyn0;
-    mergedNeuronInitGroup1[idx].outPostInSyn1 = outPostInSyn1;
-    mergedNeuronInitGroup1[idx].outPostInSyn0 = outPostInSyn0;
-    mergedNeuronInitGroup1[idx].BackSpike = BackSpike;
-    mergedNeuronInitGroup1[idx].RingWriteStartOffset = RingWriteStartOffset;
-    mergedNeuronInitGroup1[idx].RingWriteOffset = RingWriteOffset;
-    mergedNeuronInitGroup1[idx].RingReadOffset = RingReadOffset;
-    mergedNeuronInitGroup1[idx].RingReadEndOffset = RingReadEndOffset;
-    mergedNeuronInitGroup1[idx].RefracTime = RefracTime;
-    mergedNeuronInitGroup1[idx].LambdaV = LambdaV;
-    mergedNeuronInitGroup1[idx].LambdaI = LambdaI;
+    MergedNeuronInitGroup1 group = {V, spkSynSpike0, spkEventSynSpikeEvent0, spkCntSynSpike0, spkCntEventSynSpikeEvent0, outPreOutSyn1, outPreOutSyn0, outPostInSyn1, outPostInSyn0, BackSpike, RingWriteStartOffset, RingWriteOffset, RingReadOffset, RingReadEndOffset, RefracTime, LambdaV, LambdaI, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronInitGroup1, &group, sizeof(MergedNeuronInitGroup1), idx * sizeof(MergedNeuronInitGroup1), cudaMemcpyHostToDevice, 0));
 }
-static MergedNeuronInitGroup2 mergedNeuronInitGroup2[1];
+__device__ __constant__ MergedNeuronInitGroup2 d_mergedNeuronInitGroup2[1];
 void pushMergedNeuronInitGroup2ToDevice(unsigned int idx, uint8_t* BackSpike, uint32_t* EndSpike, int32_t* RingReadEndOffset, int32_t* RingReadOffset, int32_t* RingWriteOffset, int32_t* RingWriteStartOffset, uint32_t* StartSpike, uint32_t* spkCntEventSynSpikeEvent0, uint32_t* spkCntSynSpike0, uint32_t* spkEventSynSpikeEvent0, uint32_t* spkSynSpike0) {
-    mergedNeuronInitGroup2[idx].BackSpike = BackSpike;
-    mergedNeuronInitGroup2[idx].EndSpike = EndSpike;
-    mergedNeuronInitGroup2[idx].RingReadEndOffset = RingReadEndOffset;
-    mergedNeuronInitGroup2[idx].RingReadOffset = RingReadOffset;
-    mergedNeuronInitGroup2[idx].RingWriteOffset = RingWriteOffset;
-    mergedNeuronInitGroup2[idx].RingWriteStartOffset = RingWriteStartOffset;
-    mergedNeuronInitGroup2[idx].StartSpike = StartSpike;
-    mergedNeuronInitGroup2[idx].spkCntEventSynSpikeEvent0 = spkCntEventSynSpikeEvent0;
-    mergedNeuronInitGroup2[idx].spkCntSynSpike0 = spkCntSynSpike0;
-    mergedNeuronInitGroup2[idx].spkEventSynSpikeEvent0 = spkEventSynSpikeEvent0;
-    mergedNeuronInitGroup2[idx].spkSynSpike0 = spkSynSpike0;
+    MergedNeuronInitGroup2 group = {BackSpike, EndSpike, RingReadEndOffset, RingReadOffset, RingWriteOffset, RingWriteStartOffset, StartSpike, spkCntEventSynSpikeEvent0, spkCntSynSpike0, spkEventSynSpikeEvent0, spkSynSpike0, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronInitGroup2, &group, sizeof(MergedNeuronInitGroup2), idx * sizeof(MergedNeuronInitGroup2), cudaMemcpyHostToDevice, 0));
 }
-static MergedSynapseInitGroup0 mergedSynapseInitGroup0[3];
+__device__ __constant__ MergedSynapseInitGroup0 d_mergedSynapseInitGroup0[3];
 void pushMergedSynapseInitGroup0ToDevice(unsigned int idx, float* Gradient, float* g, uint32_t numSrcNeurons, uint32_t numTrgNeurons, uint32_t rowStride) {
-    mergedSynapseInitGroup0[idx].Gradient = Gradient;
-    mergedSynapseInitGroup0[idx].g = g;
-    mergedSynapseInitGroup0[idx].numSrcNeurons = numSrcNeurons;
-    mergedSynapseInitGroup0[idx].numTrgNeurons = numTrgNeurons;
-    mergedSynapseInitGroup0[idx].rowStride = rowStride;
+    MergedSynapseInitGroup0 group = {Gradient, g, numSrcNeurons, numTrgNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedSynapseInitGroup0, &group, sizeof(MergedSynapseInitGroup0), idx * sizeof(MergedSynapseInitGroup0), cudaMemcpyHostToDevice, 0));
 }
-static MergedCustomWUUpdateInitGroup0 mergedCustomWUUpdateInitGroup0[3];
+__device__ __constant__ MergedCustomUpdateInitGroup0 d_mergedCustomUpdateInitGroup0[1];
+void pushMergedCustomUpdateInitGroup0ToDevice(unsigned int idx, float* SumExpVal) {
+    MergedCustomUpdateInitGroup0 group = {SumExpVal, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateInitGroup0, &group, sizeof(MergedCustomUpdateInitGroup0), idx * sizeof(MergedCustomUpdateInitGroup0), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomUpdateInitGroup1 d_mergedCustomUpdateInitGroup1[1];
+void pushMergedCustomUpdateInitGroup1ToDevice(unsigned int idx, float* MaxVal) {
+    MergedCustomUpdateInitGroup1 group = {MaxVal, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomUpdateInitGroup1, &group, sizeof(MergedCustomUpdateInitGroup1), idx * sizeof(MergedCustomUpdateInitGroup1), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomWUUpdateInitGroup0 d_mergedCustomWUUpdateInitGroup0[3];
 void pushMergedCustomWUUpdateInitGroup0ToDevice(unsigned int idx, float* M, float* V, uint32_t numSrcNeurons, uint32_t numTrgNeurons, uint32_t rowStride) {
-    mergedCustomWUUpdateInitGroup0[idx].M = M;
-    mergedCustomWUUpdateInitGroup0[idx].V = V;
-    mergedCustomWUUpdateInitGroup0[idx].numSrcNeurons = numSrcNeurons;
-    mergedCustomWUUpdateInitGroup0[idx].numTrgNeurons = numTrgNeurons;
-    mergedCustomWUUpdateInitGroup0[idx].rowStride = rowStride;
+    MergedCustomWUUpdateInitGroup0 group = {M, V, numSrcNeurons, numTrgNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomWUUpdateInitGroup0, &group, sizeof(MergedCustomWUUpdateInitGroup0), idx * sizeof(MergedCustomWUUpdateInitGroup0), cudaMemcpyHostToDevice, 0));
+}
+__device__ __constant__ MergedCustomWUUpdateInitGroup1 d_mergedCustomWUUpdateInitGroup1[3];
+void pushMergedCustomWUUpdateInitGroup1ToDevice(unsigned int idx, float* ReducedGradient, uint32_t numSrcNeurons, uint32_t numTrgNeurons, uint32_t rowStride) {
+    MergedCustomWUUpdateInitGroup1 group = {ReducedGradient, numSrcNeurons, numTrgNeurons, rowStride, };
+    CHECK_RUNTIME_ERRORS(cudaMemcpyToSymbolAsync(d_mergedCustomWUUpdateInitGroup1, &group, sizeof(MergedCustomWUUpdateInitGroup1), idx * sizeof(MergedCustomWUUpdateInitGroup1), cudaMemcpyHostToDevice, 0));
 }
 void initializeHost() {
 }
-void initialize() {
-    const auto initStart = std::chrono::high_resolution_clock::now();
+__device__ unsigned int d_mergedNeuronInitGroupStartID0[] = {0, };
+__device__ unsigned int d_mergedNeuronInitGroupStartID1[] = {32, };
+__device__ unsigned int d_mergedNeuronInitGroupStartID2[] = {288, };
+__device__ unsigned int d_mergedSynapseInitGroupStartID0[] = {416, 672, 928, };
+__device__ unsigned int d_mergedCustomUpdateInitGroupStartID0[] = {960, };
+__device__ unsigned int d_mergedCustomUpdateInitGroupStartID1[] = {992, };
+__device__ unsigned int d_mergedCustomWUUpdateInitGroupStartID0[] = {1024, 1280, 1536, };
+__device__ unsigned int d_mergedCustomWUUpdateInitGroupStartID1[] = {1568, 1824, 2080, };
+
+extern "C" __global__ void initializeRNGKernel(unsigned long long deviceRNGSeed) {
+    if(threadIdx.x == 0) {
+        curand_init(deviceRNGSeed, 0, 0, d_rng);
+    }
+}
+
+extern "C" __global__ void initializeKernel(unsigned long long deviceRNGSeed) {
+    const unsigned int id = 32 * blockIdx.x + threadIdx.x;
     // ------------------------------------------------------------------------
-    // Neuron groups
-     {
-        // merged neuron init group 0
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedNeuronInitGroup0[g]; 
+    // Local neuron groups
+    // merged0
+    if(id < 32) {
+        const unsigned int lid = id - 0;
+        struct MergedNeuronInitGroup0 *group = &d_mergedNeuronInitGroup0[0]; 
+        // only do this for existing neurons
+        if(lid < (17u)) {
              {
-                for (unsigned int i = 0; i < ((17u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->V[i] = initVal;
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->V[(d * (17u)) + lid] = initVal;
                 }
             }
              {
-                for (unsigned int i = 0; i < ((17u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->LambdaV[i] = initVal;
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->VMax[(d * (17u)) + lid] = initVal;
                 }
             }
              {
-                for (unsigned int i = 0; i < ((17u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->LambdaI[i] = initVal;
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->VMaxTime[(d * (17u)) + lid] = initVal;
                 }
             }
              {
-                for (unsigned int i = 0; i < ((17u)); i++) {
-                    int32_t initVal;
-                    initVal = (0.000000000e+00f);
-                    group->RingWriteOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((17u)); i++) {
-                    int32_t initVal;
-                    initVal = (0.000000000e+00f);
-                    group->RingReadOffset[i] = initVal;
-                }
-            }
-            for (unsigned int i = 0; i < ((17u)); i++) {
-                group->outPostInSyn0[i] = 0.000000000e+00f;
-            }
-        }
-    }
-     {
-        // merged neuron init group 1
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedNeuronInitGroup1[g]; 
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->V[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->RefracTime[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    int32_t initVal;
-                    initVal = (0.000000000e+00f);
-                    group->RingWriteOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    int32_t initVal;
-                    initVal = (4.990000000e+02f);
-                    group->RingReadOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    int32_t initVal;
-                    initVal = (4.990000000e+02f);
-                    group->RingWriteStartOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    int32_t initVal;
-                    initVal = (4.990000000e+02f);
-                    group->RingReadEndOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
+                if(lid == 0) {
                     uint8_t initVal;
                     initVal = (0.000000000e+00f);
-                    group->BackSpike[i] = initVal;
+                    for(unsigned int d = 0; d < 64; d++) {
+                        group->YTrue[d] = initVal;
+                    }
                 }
             }
              {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->LambdaV[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((256u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->LambdaI[i] = initVal;
-                }
-            }
-            for (unsigned int i = 0; i < ((256u)); i++) {
-                group->spkSynSpike0[i] = 0;
-            }
-            group->spkCntSynSpike0[0] = 0;
-            for (unsigned int i = 0; i < ((256u)); i++) {
-                group->spkEventSynSpikeEvent0[i] = 0;
-            }
-            group->spkCntEventSynSpikeEvent0[0] = 0;
-            for (unsigned int i = 0; i < ((256u)); i++) {
-                group->outPostInSyn0[i] = 0.000000000e+00f;
-            }
-            for (unsigned int i = 0; i < ((256u)); i++) {
-                group->outPostInSyn1[i] = 0.000000000e+00f;
-            }
-            for (unsigned int i = 0; i < ((256u)); i++) {
-                group->outPreOutSyn0[i] = 0.000000000e+00f;
-            }
-            for (unsigned int i = 0; i < ((256u)); i++) {
-                group->outPreOutSyn1[i] = 0.000000000e+00f;
-            }
-        }
-    }
-     {
-        // merged neuron init group 2
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedNeuronInitGroup2[g]; 
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
-                    uint32_t initVal;
-                    initVal = (0.000000000e+00f);
-                    group->StartSpike[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
-                    uint32_t initVal;
-                    initVal = (0.000000000e+00f);
-                    group->EndSpike[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
-                    int32_t initVal;
-                    initVal = (0.000000000e+00f);
-                    group->RingWriteOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
-                    int32_t initVal;
-                    initVal = (4.990000000e+02f);
-                    group->RingReadOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
-                    int32_t initVal;
-                    initVal = (4.990000000e+02f);
-                    group->RingWriteStartOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
-                    int32_t initVal;
-                    initVal = (4.990000000e+02f);
-                    group->RingReadEndOffset[i] = initVal;
-                }
-            }
-             {
-                for (unsigned int i = 0; i < ((115u)); i++) {
+                if(lid == 0) {
                     uint8_t initVal;
                     initVal = (0.000000000e+00f);
-                    group->BackSpike[i] = initVal;
+                    for(unsigned int d = 0; d < 64; d++) {
+                        group->YTrueBack[d] = initVal;
+                    }
                 }
             }
-            for (unsigned int i = 0; i < ((115u)); i++) {
-                group->spkSynSpike0[i] = 0;
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->LambdaV[(d * (17u)) + lid] = initVal;
+                }
             }
-            group->spkCntSynSpike0[0] = 0;
-            for (unsigned int i = 0; i < ((115u)); i++) {
-                group->spkEventSynSpikeEvent0[i] = 0;
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->LambdaI[(d * (17u)) + lid] = initVal;
+                }
             }
-            group->spkCntEventSynSpikeEvent0[0] = 0;
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->Softmax[(d * (17u)) + lid] = initVal;
+                }
+            }
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->VMaxTimeBack[(d * (17u)) + lid] = initVal;
+                }
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->outPostInSyn0[(d * (17u)) + lid] = 0.000000000e+00f;
+            }
         }
     }
+    // merged1
+    if(id >= 32 && id < 288) {
+        const unsigned int lid = id - 32;
+        struct MergedNeuronInitGroup1 *group = &d_mergedNeuronInitGroup1[0]; 
+        // only do this for existing neurons
+        if(lid < (256u)) {
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->V[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RefracTime[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingWriteOffset[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (4.990000000e+02f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingReadOffset[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (4.990000000e+02f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingWriteStartOffset[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (4.990000000e+02f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingReadEndOffset[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                uint8_t initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->BackSpike[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->LambdaV[(d * (256u)) + lid] = initVal;
+                }
+            }
+             {
+                float initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->LambdaI[(d * (256u)) + lid] = initVal;
+                }
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->spkSynSpike0[(d * (256u)) + lid] = 0;
+            }
+            if(lid == 0) {
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->spkCntSynSpike0[d] = 0;
+                }
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->spkEventSynSpikeEvent0[(d * (256u)) + lid] = 0;
+            }
+            if(lid == 0) {
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->spkCntEventSynSpikeEvent0[d] = 0;
+                }
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->outPostInSyn0[(d * (256u)) + lid] = 0.000000000e+00f;
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->outPostInSyn1[(d * (256u)) + lid] = 0.000000000e+00f;
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->outPreOutSyn0[(d * (256u)) + lid] = 0.000000000e+00f;
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->outPreOutSyn1[(d * (256u)) + lid] = 0.000000000e+00f;
+            }
+        }
+    }
+    // merged2
+    if(id >= 288 && id < 416) {
+        const unsigned int lid = id - 288;
+        struct MergedNeuronInitGroup2 *group = &d_mergedNeuronInitGroup2[0]; 
+        // only do this for existing neurons
+        if(lid < (115u)) {
+             {
+                uint32_t initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->StartSpike[(d * (115u)) + lid] = initVal;
+                }
+            }
+             {
+                uint32_t initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->EndSpike[(d * (115u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingWriteOffset[(d * (115u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (4.990000000e+02f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingReadOffset[(d * (115u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (4.990000000e+02f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingWriteStartOffset[(d * (115u)) + lid] = initVal;
+                }
+            }
+             {
+                int32_t initVal;
+                initVal = (4.990000000e+02f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->RingReadEndOffset[(d * (115u)) + lid] = initVal;
+                }
+            }
+             {
+                uint8_t initVal;
+                initVal = (0.000000000e+00f);
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->BackSpike[(d * (115u)) + lid] = initVal;
+                }
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->spkSynSpike0[(d * (115u)) + lid] = 0;
+            }
+            if(lid == 0) {
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->spkCntSynSpike0[d] = 0;
+                }
+            }
+            for(unsigned int d = 0; d < 64; d++) {
+                group->spkEventSynSpikeEvent0[(d * (115u)) + lid] = 0;
+            }
+            if(lid == 0) {
+                for(unsigned int d = 0; d < 64; d++) {
+                    group->spkCntEventSynSpikeEvent0[d] = 0;
+                }
+            }
+        }
+    }
+    
     // ------------------------------------------------------------------------
     // Synapse groups
-     {
-        // merged synapse init group 0
-        for(unsigned int g = 0; g < 3; g++) {
-            const auto *group = &mergedSynapseInitGroup0[g]; 
+    // merged0
+    if(id >= 416 && id < 960) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedSynapseInitGroupStartID0[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
+            }
+        }
+        struct MergedSynapseInitGroup0 *group = &d_mergedSynapseInitGroup0[lo - 1]; 
+        const unsigned int groupStartID = d_mergedSynapseInitGroupStartID0[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        if(lid < group->numTrgNeurons) {
+            curandStatePhilox4_32_10_t localRNG = *d_rng;
+            skipahead_sequence((unsigned long long)id, &localRNG);
             for(unsigned int i = 0; i < group->numSrcNeurons; i++) {
                  {
-                    for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
-                        const unsigned int idSyn = (i * group->rowStride) + j;
-                        float initVal;
-                        initVal = (5.000000000e-01f) + (standardNormalDistribution(hostRNG) * (1.000000000e+00f));
-                        group->g[idSyn] = initVal;
-                    }
+                    const unsigned int idSyn = (i * group->rowStride) + lid;
+                    float initVal;
+                    initVal = (5.000000000e-01f) + (curand_normal(&localRNG) * (1.000000000e+00f));
+                    group->g[idSyn] = initVal;
                 }
                  {
-                    for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
-                        const unsigned int idSyn = (i * group->rowStride) + j;
-                        float initVal;
-                        initVal = (0.000000000e+00f);
-                        group->Gradient[idSyn] = initVal;
+                    const unsigned int idSyn = (i * group->rowStride) + lid;
+                    float initVal;
+                    initVal = (0.000000000e+00f);
+                    for(unsigned int d = 0; d < 64; d++) {
+                        group->Gradient[(d * group->numSrcNeurons * group->rowStride) + idSyn] = initVal;
                     }
                 }
             }
         }
     }
+    
     // ------------------------------------------------------------------------
     // Custom update groups
-    // ------------------------------------------------------------------------
-    // Custom connectivity presynaptic update groups
-    // ------------------------------------------------------------------------
-    // Custom connectivity postsynaptic update groups
-    // ------------------------------------------------------------------------
-    // Custom WU update groups
-     {
-        // merged custom WU update group 0
-        for(unsigned int g = 0; g < 3; g++) {
-            const auto *group = &mergedCustomWUUpdateInitGroup0[g]; 
-            for(unsigned int i = 0; i < group->numSrcNeurons; i++) {
-                 {
-                    for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
-                        const unsigned int idSyn = (i * group->rowStride) + j;
-                        float initVal;
-                        initVal = (0.000000000e+00f);
-                        group->M[idSyn] = initVal;
-                    }
-                }
-                 {
-                    for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
-                        const unsigned int idSyn = (i * group->rowStride) + j;
-                        float initVal;
-                        initVal = (0.000000000e+00f);
-                        group->V[idSyn] = initVal;
+    // merged0
+    if(id >= 960 && id < 992) {
+        const unsigned int lid = id - 960;
+        struct MergedCustomUpdateInitGroup0 *group = &d_mergedCustomUpdateInitGroup0[0]; 
+        // only do this for existing variables
+        if(lid < (17u)) {
+             {
+                if(lid == 0) {
+                    float initVal;
+                    initVal = (0.000000000e+00f);
+                    for(unsigned int d = 0; d < 64; d++) {
+                        group->SumExpVal[d] = initVal;
                     }
                 }
             }
         }
     }
+    // merged1
+    if(id >= 992 && id < 1024) {
+        const unsigned int lid = id - 992;
+        struct MergedCustomUpdateInitGroup1 *group = &d_mergedCustomUpdateInitGroup1[0]; 
+        // only do this for existing variables
+        if(lid < (17u)) {
+             {
+                if(lid == 0) {
+                    float initVal;
+                    initVal = (0.000000000e+00f);
+                    for(unsigned int d = 0; d < 64; d++) {
+                        group->MaxVal[d] = initVal;
+                    }
+                }
+            }
+        }
+    }
+    
     // ------------------------------------------------------------------------
-    // Synapse sparse connectivity
-    initTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - initStart).count();
+    // Custom WU update groups
+    // merged0
+    if(id >= 1024 && id < 1568) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedCustomWUUpdateInitGroupStartID0[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
+            }
+        }
+        struct MergedCustomWUUpdateInitGroup0 *group = &d_mergedCustomWUUpdateInitGroup0[lo - 1]; 
+        const unsigned int groupStartID = d_mergedCustomWUUpdateInitGroupStartID0[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        if(lid < group->numTrgNeurons) {
+            for(unsigned int i = 0; i < group->numSrcNeurons; i++) {
+                 {
+                    const unsigned int idSyn = (i * group->rowStride) + lid;
+                    float initVal;
+                    initVal = (0.000000000e+00f);
+                    group->M[idSyn] = initVal;
+                }
+                 {
+                    const unsigned int idSyn = (i * group->rowStride) + lid;
+                    float initVal;
+                    initVal = (0.000000000e+00f);
+                    group->V[idSyn] = initVal;
+                }
+            }
+        }
+    }
+    // merged1
+    if(id >= 1568 && id < 2112) {
+        unsigned int lo = 0;
+        unsigned int hi = 3;
+        while(lo < hi)
+         {
+            const unsigned int mid = (lo + hi) / 2;
+            if(id < d_mergedCustomWUUpdateInitGroupStartID1[mid]) {
+                hi = mid;
+            }
+            else {
+                lo = mid + 1;
+            }
+        }
+        struct MergedCustomWUUpdateInitGroup1 *group = &d_mergedCustomWUUpdateInitGroup1[lo - 1]; 
+        const unsigned int groupStartID = d_mergedCustomWUUpdateInitGroupStartID1[lo - 1];
+        const unsigned int lid = id - groupStartID;
+        if(lid < group->numTrgNeurons) {
+            for(unsigned int i = 0; i < group->numSrcNeurons; i++) {
+                 {
+                    const unsigned int idSyn = (i * group->rowStride) + lid;
+                    float initVal;
+                    initVal = (0.000000000e+00f);
+                    group->ReducedGradient[idSyn] = initVal;
+                }
+            }
+        }
+    }
+    
+    // ------------------------------------------------------------------------
+    // Custom connectivity presynaptic update groups
+    
+    // ------------------------------------------------------------------------
+    // Custom connectivity postsynaptic update groups
+    
+    // ------------------------------------------------------------------------
+    // Synapse groups with sparse connectivity
+    
+}
+void initialize() {
+    unsigned long long deviceRNGSeed = 0;
+     {
+        std::random_device seedSource;
+        uint32_t *deviceRNGSeedWord = reinterpret_cast<uint32_t*>(&deviceRNGSeed);
+        for(int i = 0; i < 2; i++) {
+            deviceRNGSeedWord[i] = seedSource();
+        }
+    }
+    initializeRNGKernel<<<1, 1>>>(deviceRNGSeed);
+    CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+     {
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(initStart));
+        const dim3 threads(32, 1);
+        const dim3 grid(66, 1);
+        initializeKernel<<<grid, threads>>>(deviceRNGSeed);
+        CHECK_RUNTIME_ERRORS(cudaPeekAtLastError());
+        CHECK_RUNTIME_ERRORS(cudaEventRecord(initStop));
+        CHECK_RUNTIME_ERRORS(cudaEventSynchronize(initStop));
+        float tmp;
+        CHECK_RUNTIME_ERRORS(cudaEventElapsedTime(&tmp, initStart, initStop));
+        initTime += tmp / 1000.0;
+    }
 }
 
 void initializeSparse() {
-    const auto initSparseStart = std::chrono::high_resolution_clock::now();
-    // ------------------------------------------------------------------------
-    // Synapse groups with sparse connectivity
-    // ------------------------------------------------------------------------
-    // Custom sparse WU update groups
-    // ------------------------------------------------------------------------
-    // Custom connectivity update sparse init groups
-    initSparseTime += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - initSparseStart).count();
 }
