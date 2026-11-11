@@ -4,7 +4,7 @@ import numpy as np
 from ml_genn.utils.data import preprocess_spikes
 
 
-def modcog_to_spikes(x, task_dt_ms=20, sim_dt_ms=1.0, max_rate_hz=100.0,
+def modcog_to_spikes(x, task_dt_ms=20, sim_dt_ms=1.0, max_rate_hz=500.0,
                      lo=0.0, hi=1.0, rng=None):
     rng = rng or np.random.default_rng()
     steps_per = int(round(task_dt_ms / sim_dt_ms))
@@ -64,9 +64,8 @@ def poission_spike_generator(tasks):
 
 if __name__ == "__main__":
     tasks = list(list_tasks("modcog"))
-    poission_spike_generator(tasks)
- 
-    
+    events, Y, M, lengths = poission_spike_generator(tasks)
+        
 
 
 

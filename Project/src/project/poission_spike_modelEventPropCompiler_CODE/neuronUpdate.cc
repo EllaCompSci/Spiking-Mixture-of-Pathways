@@ -4,10 +4,11 @@ struct MergedNeuronUpdateGroup0
  {
     float* __restrict__ LambdaI;
     float* __restrict__ LambdaV;
-    float* __restrict__ Softmax;
+    float* __restrict__ RingOutputLossTerm;
+    int32_t* __restrict__ RingReadOffset;
+    int32_t* __restrict__ RingWriteOffset;
     float* __restrict__ V;
-    float* __restrict__ VAvg;
-    uint8_t* __restrict__ YTrueBack;
+    float* __restrict__ YTrue;
     float* __restrict__ outPostInSyn0;
     uint32_t Trial;
     
@@ -61,13 +62,14 @@ struct MergedNeuronSpikeQueueUpdateGroup0
 }
 ;
 static MergedNeuronUpdateGroup0 mergedNeuronUpdateGroup0[1];
-void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* Softmax, float* V, float* VAvg, uint8_t* YTrueBack, float* outPostInSyn0, uint32_t Trial) {
+void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* RingOutputLossTerm, int32_t* RingReadOffset, int32_t* RingWriteOffset, float* V, float* YTrue, float* outPostInSyn0, uint32_t Trial) {
     mergedNeuronUpdateGroup0[idx].LambdaI = LambdaI;
     mergedNeuronUpdateGroup0[idx].LambdaV = LambdaV;
-    mergedNeuronUpdateGroup0[idx].Softmax = Softmax;
+    mergedNeuronUpdateGroup0[idx].RingOutputLossTerm = RingOutputLossTerm;
+    mergedNeuronUpdateGroup0[idx].RingReadOffset = RingReadOffset;
+    mergedNeuronUpdateGroup0[idx].RingWriteOffset = RingWriteOffset;
     mergedNeuronUpdateGroup0[idx].V = V;
-    mergedNeuronUpdateGroup0[idx].VAvg = VAvg;
-    mergedNeuronUpdateGroup0[idx].YTrueBack = YTrueBack;
+    mergedNeuronUpdateGroup0[idx].YTrue = YTrue;
     mergedNeuronUpdateGroup0[idx].outPostInSyn0 = outPostInSyn0;
     mergedNeuronUpdateGroup0[idx].Trial = Trial;
 }
@@ -112,8 +114,14 @@ void pushMergedNeuronSpikeQueueUpdateGroup0ToDevice(unsigned int idx, uint32_t* 
     mergedNeuronSpikeQueueUpdateGroup0[idx].spkCntEventSynSpikeEvent0 = spkCntEventSynSpikeEvent0;
     mergedNeuronSpikeQueueUpdateGroup0[idx].spkCntSynSpike0 = spkCntSynSpike0;
 }
+void pushMergedNeuronUpdate0RingOutputLossTermToDevice(unsigned int idx, float* value) {
+    mergedNeuronUpdateGroup0[idx].RingOutputLossTerm = value;
+}
 void pushMergedNeuronUpdate0TrialToDevice(unsigned int idx, uint32_t value) {
     mergedNeuronUpdateGroup0[idx].Trial = value;
+}
+void pushMergedNeuronUpdate0YTrueToDevice(unsigned int idx, float* value) {
+    mergedNeuronUpdateGroup0[idx].YTrue = value;
 }
 void pushMergedNeuronUpdate1RingIMinusVToDevice(unsigned int idx, float* value) {
     mergedNeuronUpdateGroup1[idx].RingIMinusV = value;
@@ -148,37 +156,42 @@ void updateNeurons(float t) {
         for(unsigned int g = 0; g < 1; g++) {
             const auto *group = &mergedNeuronUpdateGroup0[g]; 
             
-            for(unsigned int i = 0; i < (34u); i++) {
+            for(unsigned int i = 0; i < (17u); i++) {
                 float Isyn = 0;
-                const float _lSoftmax = group->Softmax[i];
-                float _lLambdaV = group->LambdaV[i];
+                int32_t _lRingReadOffset = group->RingReadOffset[i];
                 float _lLambdaI = group->LambdaI[i];
-                const uint8_t _lYTrueBack = group->YTrueBack[0];
-                float _lVAvg = group->VAvg[i];
+                float _lLambdaV = group->LambdaV[i];
+                int32_t _lRingWriteOffset = group->RingWriteOffset[i];
                 float _lV = group->V[i];
                  {
                     // postsynaptic model 0
                     float linSyn = group->outPostInSyn0[i];
-                    Isyn += linSyn;
-                    linSyn *= (8.187307531e-01f);
+                    Isyn += linSyn * (9.900663347e-01f);
+                    linSyn *= (9.801986733e-01f);
                     group->outPostInSyn0[i] = linSyn;
                 }
                 // calculate membrane potential
-                const float _backT = 680.0f - t - 1.000000000e+00f;
+                const float _backT = 68.0f - t - 1.000000000e-01f;
                 float _drive = 0.0f;
+                const int32_t _ringOffset = (0 * (17u) * 1360) + (i * 1360);
                 if(group->Trial > 0)
                  {
-                    const float _g = (i == _lYTrueBack) ? (1.0f - _lSoftmax) : -_lSoftmax;
-                    _drive = _g / ((2.000000000e+01f) * 1 * 680.0f);
+                    _lRingReadOffset--;
+                    const float _error = group->RingOutputLossTerm[_ringOffset + _lRingReadOffset];
+                    _drive = _error / ((2.000000000e+01f) * 1 * 68.0f);
                 }
                 
-                _lLambdaI = _drive + ((_lLambdaI - _drive) * (8.187307531e-01f)) + ((1.333333333e+00f) * (_lLambdaV - _drive) * ((9.512294245e-01f) - (8.187307531e-01f)));
-                _lLambdaV = _drive + ((_lLambdaV - _drive) * (9.512294245e-01f));
-                _lV = ((9.512294245e-01f) * _lV) + Isyn + (0.000000000e+00f);
-                _lVAvg += 0.0014705882352941176f * _lV;
-                group->LambdaV[i] = _lLambdaV;
+                _lLambdaI = _drive + ((_lLambdaI - _drive) * (9.801986733e-01f)) + ((1.333333333e+00f) * (_lLambdaV - _drive) * ((9.950124792e-01f) - (9.801986733e-01f)));
+                _lLambdaV = _drive + ((_lLambdaV - _drive) * (9.950124792e-01f));
+                _lV = ((9.950124792e-01f) * _lV) + ((1.0f - (9.950124792e-01f)) * Isyn) + (0.000000000e+00f);
+                const uint32_t _timestep = (int32_t)round(t / 1.000000000e-01f);
+                const uint32_t _index = (0 * 680 * (17u)) + (_timestep * (17u)) + i;
+                group->RingOutputLossTerm[_ringOffset + _lRingWriteOffset] = group->YTrue[_index] - _lV;
+                _lRingWriteOffset++;
+                group->RingReadOffset[i] = _lRingReadOffset;
                 group->LambdaI[i] = _lLambdaI;
-                group->VAvg[i] = _lVAvg;
+                group->LambdaV[i] = _lLambdaV;
+                group->RingWriteOffset[i] = _lRingWriteOffset;
                 group->V[i] = _lV;
             }
         }
@@ -202,15 +215,15 @@ void updateNeurons(float t) {
                  {
                     // postsynaptic model 0
                     float linSyn = group->outPostInSyn0[i];
-                    Isyn += linSyn;
-                    linSyn *= (8.187307531e-01f);
+                    Isyn += linSyn * (9.900663347e-01f);
+                    linSyn *= (9.801986733e-01f);
                     group->outPostInSyn0[i] = linSyn;
                 }
                  {
                     // postsynaptic model 1
                     float linSyn = group->outPostInSyn1[i];
-                    Isyn += linSyn;
-                    linSyn *= (8.187307531e-01f);
+                    Isyn += linSyn * (9.900663347e-01f);
+                    linSyn *= (9.801986733e-01f);
                     group->outPostInSyn1[i] = linSyn;
                 }
                  {
@@ -224,12 +237,12 @@ void updateNeurons(float t) {
                 // test whether spike condition was fulfilled previously
                 // calculate membrane potential
                 const int32_t _ringOffset = (0 * (256u) * 500) + (i * 500);
-                const float _backT = 680.0f - t - 1.000000000e+00f;
-                _lLambdaI = ((-1.333333333e+00f) * _lLambdaV * ((8.187307531e-01f) - (9.512294245e-01f))) + (_lLambdaI * (8.187307531e-01f));
-                _lLambdaV *= (9.512294245e-01f);
+                const float _backT = 68.0f - t - 1.000000000e-01f;
+                _lLambdaI = ((-1.333333333e+00f) * _lLambdaV * ((9.801986733e-01f) - (9.950124792e-01f))) + (_lLambdaI * (9.801986733e-01f));
+                _lLambdaV *= (9.950124792e-01f);
                 if(_lBackSpike)
                  {
-                    _lLambdaV += (1.0f / group->RingIMinusV[_ringOffset + _lRingReadOffset]) * ((1.000000000e+00f) * _lLambdaV + _RevISyn);
+                    _lLambdaV += (1.0f / group->RingIMinusV[_ringOffset + _lRingReadOffset]) * ((5.000000000e-01f) * _lLambdaV + _RevISyn);
                     _lRingReadOffset--;
                     if(_lRingReadOffset < 0)
                      {
@@ -239,15 +252,18 @@ void updateNeurons(float t) {
                     _lBackSpike = false;
                 }
                 
-                if(_lRingReadOffset != _lRingReadEndOffset && fabs(_backT - group->RingSpikeTime[_ringOffset + _lRingReadOffset] - 1.000000000e+00f) < 1e-3f * 1.000000000e+00f)
+                if(_lRingReadOffset != _lRingReadEndOffset && fabs(_backT - group->RingSpikeTime[_ringOffset + _lRingReadOffset] - 1.000000000e-01f) < 1e-3f * 1.000000000e-01f)
                  {
                     _lBackSpike = true;
                 }
                 
-                _lV = ((9.512294245e-01f) * _lV) + Isyn;
                 if(_lRefracTime > 0.0f)
                  {
-                    _lRefracTime -= 1.000000000e+00f;
+                    _lRefracTime -= 1.000000000e-01f;
+                }
+                else
+                 {
+                    _lV = ((9.950124792e-01f) * _lV) + ((1.0f - (9.950124792e-01f)) * Isyn);
                 }
                 
                  {
@@ -259,7 +275,7 @@ void updateNeurons(float t) {
                     }
                 }
                 // test for and register a true spike
-                if ((_lV >= (1.000000000e+00f) && _lRefracTime <= 0.0f)) {
+                if ((_lV >= (5.000000000e-01f) && _lRefracTime <= 0.0f)) {
                      {
                         group->spkSynSpike0[group->spkCntSynSpike0[0]++] = i;
                     }
@@ -267,7 +283,7 @@ void updateNeurons(float t) {
                     if(_lRingWriteOffset != _lRingReadEndOffset)
                      {
                         group->RingSpikeTime[_ringOffset + _lRingWriteOffset] = t;
-                        group->RingIMinusV[_ringOffset + _lRingWriteOffset] = (Isyn * (1.103331113e+00f)) - _lV;
+                        group->RingIMinusV[_ringOffset + _lRingWriteOffset] = (Isyn * (1.010033333e+00f)) - _lV;
                         _lRingWriteOffset++;
                         if(_lRingWriteOffset >= 500)
                          {
@@ -276,7 +292,7 @@ void updateNeurons(float t) {
                         
                     }
                     
-                    _lV -= ((1.000000000e+00f) - (0.000000000e+00f));
+                    _lV = (0.000000000e+00f);
                     _lRefracTime = (1.000000000e+00f);
                 }
                 group->RingReadEndOffset[i] = _lRingReadEndOffset;
@@ -305,7 +321,7 @@ void updateNeurons(float t) {
                 // test whether spike condition was fulfilled previously
                 // calculate membrane potential
                 const int32_t _ringOffset = (0 * (115u) * 500) + (i * 500);
-                const float _backT = 680.0f - t - 1.000000000e+00f;
+                const float _backT = 68.0f - t - 1.000000000e-01f;
                 if(_lBackSpike)
                  {
                     _lRingReadOffset--;
@@ -317,7 +333,7 @@ void updateNeurons(float t) {
                     _lBackSpike = false;
                 }
                 
-                if(_lRingReadOffset != _lRingReadEndOffset && fabs(_backT - group->RingSpikeTime[_ringOffset + _lRingReadOffset] - 1.000000000e+00f) < 1e-3f * 1.000000000e+00f)
+                if(_lRingReadOffset != _lRingReadEndOffset && fabs(_backT - group->RingSpikeTime[_ringOffset + _lRingReadOffset] - 1.000000000e-01f) < 1e-3f * 1.000000000e-01f)
                  {
                     _lBackSpike = true;
                 }

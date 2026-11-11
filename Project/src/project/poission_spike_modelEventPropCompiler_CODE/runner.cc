@@ -19,18 +19,6 @@ double neuronUpdateTime = 0.0;
 double presynapticUpdateTime = 0.0;
 double postsynapticUpdateTime = 0.0;
 double synapseDynamicsTime = 0.0;
-double customUpdateBatchSoftmax1Time = 0.0;
-double customUpdateBatchSoftmax1TransposeTime = 0.0;
-double customUpdateBatchSoftmax1RemapTime = 0.0;
-double customUpdateBatchSoftmax1HostTime = 0.0;
-double customUpdateBatchSoftmax2Time = 0.0;
-double customUpdateBatchSoftmax2TransposeTime = 0.0;
-double customUpdateBatchSoftmax2RemapTime = 0.0;
-double customUpdateBatchSoftmax2HostTime = 0.0;
-double customUpdateBatchSoftmax3Time = 0.0;
-double customUpdateBatchSoftmax3TransposeTime = 0.0;
-double customUpdateBatchSoftmax3RemapTime = 0.0;
-double customUpdateBatchSoftmax3HostTime = 0.0;
 double customUpdateGradientLearnTime = 0.0;
 double customUpdateGradientLearnTransposeTime = 0.0;
 double customUpdateGradientLearnRemapTime = 0.0;
@@ -84,7 +72,7 @@ void freeMem() {
 }
 
 void stepTime(unsigned long long timestep, unsigned long long numRecordingTimesteps) {
-    const float t = timestep * 1.000000000e+00f;
+    const float t = timestep * 1.000000000e-01f;
     updateSynapses(t);
     updateNeurons(t); 
 }

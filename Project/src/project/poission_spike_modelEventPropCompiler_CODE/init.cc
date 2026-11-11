@@ -3,11 +3,9 @@ struct MergedNeuronInitGroup0
  {
     float* __restrict__ LambdaI;
     float* __restrict__ LambdaV;
-    float* __restrict__ Softmax;
+    int32_t* __restrict__ RingReadOffset;
+    int32_t* __restrict__ RingWriteOffset;
     float* __restrict__ V;
-    float* __restrict__ VAvg;
-    uint8_t* __restrict__ YTrue;
-    uint8_t* __restrict__ YTrueBack;
     float* __restrict__ outPostInSyn0;
     
 }
@@ -57,19 +55,6 @@ struct MergedSynapseInitGroup0
     uint32_t numSrcNeurons;
     uint32_t numTrgNeurons;
     uint32_t rowStride;
-    float sdg;
-    
-}
-;
-struct MergedCustomUpdateInitGroup0
- {
-    float* __restrict__ SumExpVal;
-    
-}
-;
-struct MergedCustomUpdateInitGroup1
- {
-    float* __restrict__ MaxVal;
     
 }
 ;
@@ -84,14 +69,12 @@ struct MergedCustomWUUpdateInitGroup0
 }
 ;
 static MergedNeuronInitGroup0 mergedNeuronInitGroup0[1];
-void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, float* Softmax, float* V, float* VAvg, uint8_t* YTrue, uint8_t* YTrueBack, float* outPostInSyn0) {
+void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, float* LambdaI, float* LambdaV, int32_t* RingReadOffset, int32_t* RingWriteOffset, float* V, float* outPostInSyn0) {
     mergedNeuronInitGroup0[idx].LambdaI = LambdaI;
     mergedNeuronInitGroup0[idx].LambdaV = LambdaV;
-    mergedNeuronInitGroup0[idx].Softmax = Softmax;
+    mergedNeuronInitGroup0[idx].RingReadOffset = RingReadOffset;
+    mergedNeuronInitGroup0[idx].RingWriteOffset = RingWriteOffset;
     mergedNeuronInitGroup0[idx].V = V;
-    mergedNeuronInitGroup0[idx].VAvg = VAvg;
-    mergedNeuronInitGroup0[idx].YTrue = YTrue;
-    mergedNeuronInitGroup0[idx].YTrueBack = YTrueBack;
     mergedNeuronInitGroup0[idx].outPostInSyn0 = outPostInSyn0;
 }
 static MergedNeuronInitGroup1 mergedNeuronInitGroup1[1];
@@ -129,21 +112,12 @@ void pushMergedNeuronInitGroup2ToDevice(unsigned int idx, uint8_t* BackSpike, ui
     mergedNeuronInitGroup2[idx].spkSynSpike0 = spkSynSpike0;
 }
 static MergedSynapseInitGroup0 mergedSynapseInitGroup0[3];
-void pushMergedSynapseInitGroup0ToDevice(unsigned int idx, float* Gradient, float* g, uint32_t numSrcNeurons, uint32_t numTrgNeurons, uint32_t rowStride, float sdg) {
+void pushMergedSynapseInitGroup0ToDevice(unsigned int idx, float* Gradient, float* g, uint32_t numSrcNeurons, uint32_t numTrgNeurons, uint32_t rowStride) {
     mergedSynapseInitGroup0[idx].Gradient = Gradient;
     mergedSynapseInitGroup0[idx].g = g;
     mergedSynapseInitGroup0[idx].numSrcNeurons = numSrcNeurons;
     mergedSynapseInitGroup0[idx].numTrgNeurons = numTrgNeurons;
     mergedSynapseInitGroup0[idx].rowStride = rowStride;
-    mergedSynapseInitGroup0[idx].sdg = sdg;
-}
-static MergedCustomUpdateInitGroup0 mergedCustomUpdateInitGroup0[1];
-void pushMergedCustomUpdateInitGroup0ToDevice(unsigned int idx, float* SumExpVal) {
-    mergedCustomUpdateInitGroup0[idx].SumExpVal = SumExpVal;
-}
-static MergedCustomUpdateInitGroup1 mergedCustomUpdateInitGroup1[1];
-void pushMergedCustomUpdateInitGroup1ToDevice(unsigned int idx, float* MaxVal) {
-    mergedCustomUpdateInitGroup1[idx].MaxVal = MaxVal;
 }
 static MergedCustomWUUpdateInitGroup0 mergedCustomWUUpdateInitGroup0[3];
 void pushMergedCustomWUUpdateInitGroup0ToDevice(unsigned int idx, float* M, float* V, uint32_t numSrcNeurons, uint32_t numTrgNeurons, uint32_t rowStride) {
@@ -164,51 +138,41 @@ void initialize() {
         for(unsigned int g = 0; g < 1; g++) {
             const auto *group = &mergedNeuronInitGroup0[g]; 
              {
-                for (unsigned int i = 0; i < ((34u)); i++) {
+                for (unsigned int i = 0; i < ((17u)); i++) {
                     float initVal;
                     initVal = (0.000000000e+00f);
                     group->V[i] = initVal;
                 }
             }
              {
-                for (unsigned int i = 0; i < ((34u)); i++) {
-                    float initVal;
-                    initVal = (0.000000000e+00f);
-                    group->VAvg[i] = initVal;
-                }
-            }
-             {
-                uint8_t initVal;
-                initVal = (0.000000000e+00f);
-                group->YTrue[0] = initVal;
-            }
-             {
-                uint8_t initVal;
-                initVal = (0.000000000e+00f);
-                group->YTrueBack[0] = initVal;
-            }
-             {
-                for (unsigned int i = 0; i < ((34u)); i++) {
+                for (unsigned int i = 0; i < ((17u)); i++) {
                     float initVal;
                     initVal = (0.000000000e+00f);
                     group->LambdaV[i] = initVal;
                 }
             }
              {
-                for (unsigned int i = 0; i < ((34u)); i++) {
+                for (unsigned int i = 0; i < ((17u)); i++) {
                     float initVal;
                     initVal = (0.000000000e+00f);
                     group->LambdaI[i] = initVal;
                 }
             }
              {
-                for (unsigned int i = 0; i < ((34u)); i++) {
-                    float initVal;
+                for (unsigned int i = 0; i < ((17u)); i++) {
+                    int32_t initVal;
                     initVal = (0.000000000e+00f);
-                    group->Softmax[i] = initVal;
+                    group->RingWriteOffset[i] = initVal;
                 }
             }
-            for (unsigned int i = 0; i < ((34u)); i++) {
+             {
+                for (unsigned int i = 0; i < ((17u)); i++) {
+                    int32_t initVal;
+                    initVal = (0.000000000e+00f);
+                    group->RingReadOffset[i] = initVal;
+                }
+            }
+            for (unsigned int i = 0; i < ((17u)); i++) {
                 group->outPostInSyn0[i] = 0.000000000e+00f;
             }
         }
@@ -376,7 +340,7 @@ void initialize() {
                     for (unsigned int j = 0; j < group->numTrgNeurons; j++) {
                         const unsigned int idSyn = (i * group->rowStride) + j;
                         float initVal;
-                        initVal = (0.000000000e+00f) + (standardNormalDistribution(hostRNG) * group->sdg);
+                        initVal = (5.000000000e-01f) + (standardNormalDistribution(hostRNG) * (1.000000000e+00f));
                         group->g[idSyn] = initVal;
                     }
                 }
@@ -393,28 +357,6 @@ void initialize() {
     }
     // ------------------------------------------------------------------------
     // Custom update groups
-     {
-        // merged custom init group 0
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedCustomUpdateInitGroup0[g]; 
-             {
-                float initVal;
-                initVal = (0.000000000e+00f);
-                group->SumExpVal[0] = initVal;
-            }
-        }
-    }
-     {
-        // merged custom init group 1
-        for(unsigned int g = 0; g < 1; g++) {
-            const auto *group = &mergedCustomUpdateInitGroup1[g]; 
-             {
-                float initVal;
-                initVal = (0.000000000e+00f);
-                group->MaxVal[0] = initVal;
-            }
-        }
-    }
     // ------------------------------------------------------------------------
     // Custom connectivity presynaptic update groups
     // ------------------------------------------------------------------------
