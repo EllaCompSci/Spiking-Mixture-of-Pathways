@@ -43,11 +43,11 @@ def model(X, Y):
     INPUT_NUM = 115
     HIDDEN_NUM = 32
     OUT_NUM = int(Y.max())   # 17 if classes run 0..16, as in your plot
-    BATCH_SIZE = 32
+    BATCH_SIZE = 1
     N_LAYERS = 3
     SPARSITY = 1.0
     TRAIN = True
-    NUM_EPOCHS = 4000
+    NUM_EPOCHS = 10
     
     network = Network(default_params=default_params)
     with network:
@@ -98,7 +98,6 @@ def model(X, Y):
             batch_size=BATCH_SIZE,
             kernel_profiling=True, 
             per_timestep_loss=True,
-            backend="cuda",
             reg_nu_upper = 10,
             reg_lambda_upper = {hid_1: 4e-9, hid_2: 4e-9, hid_3: 4e-9},
             reg_lambda_lower = {hid_1: 4e-9, hid_2: 4e-9, hid_3: 4e-9},
