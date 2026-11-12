@@ -32,14 +32,8 @@ def data_encoding():
 def model(X, Y):
     INPUT_NUM = 115
     HIDDEN_NUM = 256
-<<<<<<< HEAD
-    OUT_NUM = int(Y.max())+1  # 17 if classes run 0..16, as in your plot
-    print(OUT_NUM)
-    BATCH_SIZE = 64
-=======
     OUT_NUM = int(Y.max())   # 17 if classes run 0..16, as in your plot
     BATCH_SIZE = 1
->>>>>>> 04296bb (custom loss function during fixation and response period)
     SPARSITY = 1.0
     TRAIN = True
     NUM_EPOCHS = 100
@@ -57,25 +51,6 @@ def model(X, Y):
 
 
     STEPS_PER = 20
-<<<<<<< HEAD
-    NUM_STEPS = Y.shape[1] * STEPS_PER                       # 34 * 20 = 680
-    Y_t = np.repeat(np.eye(OUT_NUM, dtype=np.float32)[Y],    
-                STEPS_PER, axis=1)                       
-
-    Y_trail = Y.max(axis=1).astype(np.int32)                      
-    if TRAIN:
-        compiler = EventPropCompiler(
-            example_timesteps=NUM_STEPS,
-            losses="sparse_categorical_crossentropy",
-            optimiser="adam",
-            batch_size=BATCH_SIZE,
-            kernel_profiling=True,
-            backend="cuda")
-        
-        compiled_net = compiler.compile(network)
-        
-        print(Y_t.shape)
-=======
     OUT_NUM = 16
 
     resp_start = (Y > 0).argmax(axis=1) * STEPS_PER        # (N,) in sim timesteps
@@ -108,7 +83,6 @@ def model(X, Y):
         compiled_net = compiler.compile(network)
         
         serialiser = Numpy("checkpoints")
->>>>>>> 04296bb (custom loss function during fixation and response period)
 
         with compiled_net:
             start_time = perf_counter()
