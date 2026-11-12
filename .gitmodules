@@ -1,0 +1,4 @@
+[submodule "Project/ml_genn"]
+	path = Project/ml_genn
+	url = https://github.com/EllaCompSci/ml_genn.git
+	branch = fixation-mse-response-ce
