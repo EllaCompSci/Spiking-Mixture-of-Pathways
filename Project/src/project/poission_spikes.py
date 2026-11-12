@@ -60,12 +60,12 @@ def poission_spike_generator(tasks):
     spikes = modcog_to_spikes(X_t)           # (34*20, 8200, 115) = (680, 8200, 115)
     print(spikes.shape)                      # expect (680, 8200, 115)
     events = raster_to_events(spikes, lengths, steps_per=20)
-    return events, Y, M, lengths
+    return events, Y, X, M, lengths
 
 if __name__ == "__main__":
     tasks = list(list_tasks("modcog"))
-    events, Y, M, lengths = poission_spike_generator(tasks)
-        
+    events, Y, X, M, lengths = poission_spike_generator(tasks)
+    plot_trial(events, X, lengths, 2)
 
 
 

@@ -11,6 +11,7 @@ from ml_genn.neurons import IntegrateFireInput, LeakyIntegrate, LeakyIntegrateFi
 from ml_genn.serialisers import Numpy
 from ml_genn.utils.data import preprocess_spikes
 from ml_genn.callbacks import VarRecorder, SpikeRecorder
+from ml_genn.losses import FixationMSEResponseCE
 
 from time import perf_counter
 from ml_genn.utils.data import (calc_latest_spike_time, calc_max_spikes,
@@ -23,17 +24,22 @@ from cogtasks import list_tasks
 
 def data_encoding():
     tasks = list(list_tasks("modcog")) 
-    spikes, Y, M, LENGHT = poission_spike_generator(tasks) 
+    spikes, Y, X, M, LENGHT = poission_spike_generator(tasks) 
     X = [preprocess_spikes(t, ids, 115) for t, ids in spikes] 
+    print(len(X))
     return X, Y, M, LENGHT
 
 def model(X, Y):
-    print(Y.shape)
     INPUT_NUM = 115
     HIDDEN_NUM = 256
+<<<<<<< HEAD
     OUT_NUM = int(Y.max())+1  # 17 if classes run 0..16, as in your plot
     print(OUT_NUM)
     BATCH_SIZE = 64
+=======
+    OUT_NUM = int(Y.max())   # 17 if classes run 0..16, as in your plot
+    BATCH_SIZE = 1
+>>>>>>> 04296bb (custom loss function during fixation and response period)
     SPARSITY = 1.0
     TRAIN = True
     NUM_EPOCHS = 100
@@ -51,6 +57,7 @@ def model(X, Y):
 
 
     STEPS_PER = 20
+<<<<<<< HEAD
     NUM_STEPS = Y.shape[1] * STEPS_PER                       # 34 * 20 = 680
     Y_t = np.repeat(np.eye(OUT_NUM, dtype=np.float32)[Y],    
                 STEPS_PER, axis=1)                       
@@ -68,6 +75,40 @@ def model(X, Y):
         compiled_net = compiler.compile(network)
         
         print(Y_t.shape)
+=======
+    OUT_NUM = 16
+
+    resp_start = (Y > 0).argmax(axis=1) * STEPS_PER        # (N,) in sim timesteps
+    trial_end  = LENGTH.astype(int) * STEPS_PER            # (N,) in sim timesteps
+
+    # class 0 (fixation) -> all zeros; class c in 1..16 -> one-hot on unit c-1
+    onehot = np.zeros((*Y.shape, OUT_NUM), np.float32)     # (N, 34, 16)
+    r = Y > 0
+    onehot[r, Y[r] - 1] = 1.0
+
+    Y_t = np.repeat(onehot, STEPS_PER, axis=1)             # (N, 680, 16)
+
+    # padding: everything at or after the real end is ignored
+    t = np.arange(Y_t.shape[1])[None, :]
+    Y_t[t >= trial_end[:, None]] = -1.0    
+
+    print(Y_t.shape)
+    
+
+    if TRAIN:
+        compiler = EventPropCompiler(
+            example_timesteps=680,
+            losses=FixationMSEResponseCE(),
+            optimiser="adam",
+            batch_size=BATCH_SIZE,
+            kernel_profiling=True, 
+            per_timestep_loss=True,
+            )
+        
+        compiled_net = compiler.compile(network)
+        
+        serialiser = Numpy("checkpoints")
+>>>>>>> 04296bb (custom loss function during fixation and response period)
 
         with compiled_net:
             start_time = perf_counter()
@@ -82,7 +123,33 @@ def model(X, Y):
 
             end_time = perf_counter()
 
+            compiled_net.save_connectivity((NUM_EPOCHS - 1,), serialiser="numpy")  # check name in docs
+
             print(f"Accuracy = {100 * metrics[out].result}%")
+           
+
+        network.load((NUM_EPOCHS - 1,), serialiser)          # trained weights into the network
+
+        inf = InferenceCompiler(evaluate_timesteps=680, batch_size=BATCH_SIZE)
+        inf_net = inf.compile(network)
+
+        with inf_net:
+            _, cb = inf_net.evaluate({inp: X}, {out: Y_t},
+                             callbacks=[VarRecorder(out, "v", key="out_v")])
+
+        v = np.array(cb["out_v"])                            # expect (N, 680, 16)
+        print(v.shape)
+        print("L_fix %.3f  L_resp %.3f  resp acc %.3f" % combined_loss(v, Y_t))
+
+def combined_loss(v, Y_t):
+    rs = Y_t.sum(-1)
+    fix, resp = np.abs(rs) < 0.5, rs >= 0.5
+    L_fix = (v[fix] ** 2).sum(-1).mean()
+    m = v.max(-1, keepdims=True)
+    logp = v - m - np.log(np.exp(v - m).sum(-1, keepdims=True))
+    L_resp = -(logp * (Y_t > 0)).sum(-1)[resp].mean()
+    acc = (v.argmax(-1) == Y_t.argmax(-1))[resp].mean()
+    return L_fix, L_resp, acc
 
 
 
