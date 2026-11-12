@@ -2,3 +2,6 @@
 	path = Project/ml_genn
 	url = https://github.com/EllaCompSci/ml_genn.git
 	branch = fixation-mse-response-ce
+[submodule "Project/genn"]
+	path = Project/genn
+	url = https://github.com/genn-team/genn.git
