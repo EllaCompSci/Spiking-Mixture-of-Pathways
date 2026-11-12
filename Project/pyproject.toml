@@ -4,7 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "pygenn",
-    "ml_genn",
     "numpy",
     "neurogym",
     "torch>=2.14.1",
@@ -12,11 +11,12 @@ dependencies = [
     "pyqt6>=6.11.0",
     "pyqtgraph>=0.14.0",
     "mnist>=0.2.2",
+    "ml-genn",
 ]
 
 [tool.uv.sources]
 pygenn = { path = "genn" }
-ml-genn = { git = "https://github.com/genn-team/ml_genn", subdirectory = "ml_genn" }
+ml-genn = { path = "ml_genn/ml_genn", editable = true }
 
 # Build PyGeNN against the environment's own build tools
 [tool.uv.extra-build-dependencies]
