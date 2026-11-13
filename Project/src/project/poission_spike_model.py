@@ -41,13 +41,13 @@ def data_encoding():
 
 def model(X, Y):
     INPUT_NUM = 115
-    HIDDEN_NUM = 32
+    HIDDEN_NUM = 128
     OUT_NUM = int(Y.max())   # 17 if classes run 0..16, as in your plot
-    BATCH_SIZE = 1
+    BATCH_SIZE = 64
     N_LAYERS = 3
     SPARSITY = 1.0
     TRAIN = True
-    NUM_EPOCHS = 10
+    NUM_EPOCHS = 2000
     
     network = Network(default_params=default_params)
     with network:
@@ -98,6 +98,7 @@ def model(X, Y):
             batch_size=BATCH_SIZE,
             kernel_profiling=True, 
             per_timestep_loss=True,
+            backend="cuda",
             reg_nu_upper = 10,
             reg_lambda_upper = {hid_1: 4e-9, hid_2: 4e-9, hid_3: 4e-9},
             reg_lambda_lower = {hid_1: 4e-9, hid_2: 4e-9, hid_3: 4e-9},
@@ -111,8 +112,8 @@ def model(X, Y):
             start_time = perf_counter()
             callbacks = ["batch_progress_bar"]
             metrics, _  = compiled_net.train(
-                {inp: X[:64]},
-                {out: Y_t[:64]},
+                {inp: X[:512]},
+                {out: Y_t[:512]},
                 num_epochs=NUM_EPOCHS,
                 metrics=NoMetric(),
                 shuffle=True,
@@ -132,7 +133,7 @@ def model(X, Y):
         inf_net = inf.compile(network)
 
         hidden = [hid_1, hid_2, hid_3]
-        N_EVAL = 64
+        N_EVAL = 512
 
         with inf_net:
             _, cb = inf_net.evaluate({inp: X[:N_EVAL]}, {out: Y_t[:N_EVAL]},metrics=NoMetric(),
@@ -142,10 +143,10 @@ def model(X, Y):
 
         v = np.array(cb["out_v"])                            # expect (N, 680, 16)
         print(v.shape)
-        print("L_fix %.3f  L_resp %.3f  resp acc %.3f" % combined_loss(v[:64], Y_t[:64]))
+        print("L_fix %.3f  L_resp %.3f  resp acc %.3f" % combined_loss(v[:512], Y_t[:512]))
 
-        fix = np.abs(Y_t[:64].sum(-1)) <0.5
-        resp = Y_t[:64].sum(-1) >= 0.5
+        fix = np.abs(Y_t[:512].sum(-1)) <0.5
+        resp = Y_t[:512].sum(-1) >= 0.5
         print("max v            :", np.abs(v).max())
         print("mean v fixation  :", np.abs(v[fix].mean()))
         print("mean v response  :", np.abs(v[resp]).mean())
