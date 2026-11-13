@@ -47,16 +47,16 @@ def model(X, Y):
     N_LAYERS = 3
     SPARSITY = 1.0
     TRAIN = True
-    NUM_EPOCHS = 3000
+    NUM_EPOCHS = 5000
     
     network = Network(default_params=default_params)
     with network:
         inp = Population(SpikeInput(max_spikes=BATCH_SIZE * calc_max_spikes(X)), INPUT_NUM, record_spikes=True)
-        hid_1 = Population(LeakyIntegrateFire(v_thresh=0.7, v_reset=0.0, tau_mem=20.0,
+        hid_1 = Population(LeakyIntegrateFire(v_thresh=0.7, v_reset=0.0, tau_mem=50.0,
                                         tau_refrac=1.0), HIDDEN_NUM, record_spikes=True)
-        hid_2 = Population(LeakyIntegrateFire(v_thresh=0.7, v_reset =0.0, tau_mem=20.0,
+        hid_2 = Population(LeakyIntegrateFire(v_thresh=0.7, v_reset =0.0, tau_mem=50.0,
                                         tau_refrac=1.0), HIDDEN_NUM, record_spikes=True)
-        hid_3 = Population(LeakyIntegrateFire(v_thresh=0.7, v_reset =0.0, tau_mem=20.0,
+        hid_3 = Population(LeakyIntegrateFire(v_thresh=0.7, v_reset =0.0, tau_mem=50.0,
                                                 tau_refrac=1.0), HIDDEN_NUM, record_spikes=True)
         out = Population(LeakyIntegrate(tau_mem=20.0, readout="var"), OUT_NUM, record_spikes=True)
 
@@ -160,7 +160,7 @@ def loss_plot(NUM_EPOCHS, network, serialiser, inp, out, X_eval, Y_eval, N_EVAL)
     L_resp_hist, acc_hist = [], []
 
     for e in epochs:
-        network.load((NUM_EPOCHS - 1,), serialiser)
+        network.load((e,), serialiser)
         l_fix , l_resp, acc = evaluate(network, inp, out, X_eval, Y_eval, N_EVAL)
         L_resp_hist.append(l_resp)
         acc_hist.append(acc)
