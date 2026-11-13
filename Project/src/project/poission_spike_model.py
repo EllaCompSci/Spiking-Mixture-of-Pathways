@@ -47,7 +47,7 @@ def model(X, Y):
     N_LAYERS = 3
     SPARSITY = 1.0
     TRAIN = True
-    NUM_EPOCHS = 2000
+    NUM_EPOCHS = 3000
     
     network = Network(default_params=default_params)
     with network:
@@ -143,14 +143,48 @@ def model(X, Y):
 
         v = np.array(cb["out_v"])                            # expect (N, 680, 16)
         print(v.shape)
-        print("L_fix %.3f  L_resp %.3f  resp acc %.3f" % combined_loss(v[:512], Y_t[:512]))
+        print("L_fix %.3f  L_resp %.3f  resp acc %.3f" % combined_loss(v[:N_EVAL], Y_t[:N_EVAL]))
 
-        fix = np.abs(Y_t[:512].sum(-1)) <0.5
-        resp = Y_t[:512].sum(-1) >= 0.5
+        fix = np.abs(Y_t[:N_EVAL].sum(-1)) <0.5
+        resp = Y_t[:N_EVAL].sum(-1) >= 0.5
         print("max v            :", np.abs(v).max())
         print("mean v fixation  :", np.abs(v[fix].mean()))
         print("mean v response  :", np.abs(v[resp]).mean())
         print("spread response  :", v[resp].std(-1).mean())
+
+        loss_plot(NUM_EPOCHS, network, serialiser, inp, out, X[:N_EVAL], Y_t[:N_EVAL], N_EVAL)
+
+
+def loss_plot(NUM_EPOCHS, network, serialiser, inp, out, X_eval, Y_eval, N_EVAL):
+    epochs = list(range(0, NUM_EPOCHS, 100))
+    L_resp_hist, acc_hist = [], []
+
+    for e in epochs:
+        network.load((NUM_EPOCHS - 1,), serialiser)
+        l_fix , l_resp, acc = evaluate(network, inp, out, X_eval, Y_eval, N_EVAL)
+        L_resp_hist.append(l_resp)
+        acc_hist.append(acc)
+
+    fig, (ax1, ax2) = plt.subplots(2,1, sharex = True)
+    ax1.plot(epochs, L_resp_hist, label ="train")
+    ax1.axhline(np.log(16), linestyle = "--", color="grey", label="chance")
+    ax1.set_ylabel("L_resp")
+    ax1.legend()
+
+    ax2.plot(epochs, acc_hist)
+    ax2.set_ylabel("response accuracy")
+    ax2.set_xlabel("epoch")
+
+    plt.savefig("training_curve.png", dpi=150)
+
+def evaluate(network, inp, out, X_eval, Y_eval, N_EVAL):
+    inf = InferenceCompiler(evaluate_timesteps=680, batch_size=64)
+    inf_net = inf.compile(network)
+    with inf_net: 
+        _, cb = inf_net.evaluate({inp: X_eval}, {out: Y_eval}, metrics=NoMetric(), callbacks=[VarRecorder(out, "v", key="out_v")])
+    v = np.array(cb["out_v"])
+    return combined_loss(v, Y_eval)
+
 
 def combined_loss(v, Y_t):
     rs = Y_t.sum(-1)
